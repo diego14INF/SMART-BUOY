@@ -16,7 +16,7 @@ void tearDown(void) {
 // Prueba 1: Verificar inicialización del módulo SIM808
 void test_sim808_init(void) {
     int init_result = sim808_init();
-    TEST_ASSERT_TRUE_MESSAGE(init_result, "SIM808 initialized");  // Simplificada como ejemplo
+    TEST_ASSERT_TRUE_MESSAGE(init_result, "SIM808 initialized"); 
 }
 
 // Prueba 2: Verificar la respuesta del módulo SIM808
@@ -44,4 +44,14 @@ void test_parse_gps_data(void) {
     TEST_ASSERT_FLOAT_WITHIN(0.0001, 40.712776, gps_data.latitude);
     TEST_ASSERT_FLOAT_WITHIN(0.0001, -74.005974, gps_data.longitude);
     
+}
+void app_main()
+{
+  UNITY_BEGIN();
+
+  RUN_TEST(test_sim808_init);
+  RUN_TEST(test_sim808_send_command_and_read_response);
+  RUN_TEST(test_parse_gps_data);
+
+  UNITY_END();
 }
