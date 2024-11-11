@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "gps_sim808.h"
 #include "gps_data.h"
+#include <esp_rom_sys.h>  // Necesario para `esp_rom_delay_us()`
 
 void app_main(void) {
     // Inicializa el módulo SIM808
@@ -18,7 +19,7 @@ void app_main(void) {
             printf("Longitud: %f\n", gps_data.longitude);
         }
 
-        // Agrega un pequeño retraso para evitar lecturas muy rápidas
-        vTaskDelay(pdMS_TO_TICKS(1000));
+       // Retraso de 1 segundo
+        esp_rom_delay_us(1000000);   // 1000 ms = 1000000 us
     }
 }

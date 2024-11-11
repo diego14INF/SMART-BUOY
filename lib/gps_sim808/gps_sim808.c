@@ -7,7 +7,7 @@
 #define RXD_PIN (16)
 #define BAUD_RATE 115200
 
-void sim808_init() {
+int sim808_init() {
     // Configura UART
     const uart_config_t uart_config = {
         .baud_rate = BAUD_RATE,
@@ -22,6 +22,15 @@ void sim808_init() {
 
     // Configuración inicial del SIM808
     sim808_send_command("AT\r\n");          // Prueba conexión
+
+      // Lee la respuesta para ver si es "OK"
+    char response[64];
+    sim808_read_response(response, sizeof(response));
+    if (strstr(response, "OK") != NULL) {
+        return 1;  // Inicialización exitosa
+    } else {
+        return 0;  // Error en la inicialización
+    }
     sim808_send_command("AT+CGNSPWR=1\r\n"); // Activa GPS en el SIM808
 }
 
