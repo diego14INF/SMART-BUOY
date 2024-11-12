@@ -9,13 +9,9 @@
 #define UART_NUM UART_NUM_1  // UART 1 para comunicación con SIM808
 #define TXD_PIN (17)
 #define RXD_PIN (16)
-#define BAUD_RATE 9600
+#define BAUD_RATE 115200
 #define BUF_SIZE           1024
 #define VBAT_COMMAND       "AT+CBC\r\n"
-
-void print_command(const char *command) {
-    printf("Se envió al SIM808: %s\n", command);
-}
 
 int sim808_init() {
     // Configura UART
@@ -41,12 +37,12 @@ int sim808_init() {
     } else {
         return 0;  // Error en la inicialización
     }
-    sim808_send_command("AT+CGNSPWR=1\r\n"); // Activa GPS en el SIM808
+    sim808_send_command("AT+CGNSPWR=1\r\n"); // Activa GPS en el SIM808 (GPS power control)
 }
 
 void sim808_send_command(const char *command) {
     uart_write_bytes(UART_NUM, command, strlen(command));
-    print_command(command);
+    printf("Enviando comando al SIM808: %s\n", command);
 }
 
 void sim808_read_response(char *buffer, size_t buffer_size) {
@@ -63,7 +59,7 @@ void sim808_read_response(char *buffer, size_t buffer_size) {
 void monitorizar_vbat() {
     // Enviar el comando AT+CBC
     uart_write_bytes(UART_NUM, (const char *)VBAT_COMMAND, strlen(VBAT_COMMAND));
-    printf("Enviando comando: %s\n", VBAT_COMMAND);
+    printf("Enviando comando al SIM808: %s\n", VBAT_COMMAND);
 
     // Buffer para leer la respuesta
     char data[BUF_SIZE];
