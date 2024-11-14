@@ -68,7 +68,7 @@ void monitorizar_vbat() {
     // Asegurarse de que haya datos leídos
     if (length > 0) {
         data[length] = '\0';  // Añadir el terminador nulo para convertir a cadena de caracteres
-        printf("Respuesta del módulo: %s\n", data);
+        printf("Respuesta del módulo SIM808: %s\n", data);
 
         // Buscar el valor del voltaje en la respuesta
         char *start = strstr(data, "+CBC: ");

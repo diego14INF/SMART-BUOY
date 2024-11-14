@@ -21,6 +21,6 @@ void app_main(void) {
         
         monitorizar_vbat();
        // Retraso de 1 segundo
-        esp_rom_delay_us(1000000);   // 1000 ms = 1000000 us
+        esp_rom_delay_us(2000000);   // 1000 ms = 1000000 us
     }
 }
