@@ -28,7 +28,8 @@ int sim808_init() {
 
     // Configuración inicial del SIM808
     sim808_send_command("AT\r\n");          // Prueba conexión
-
+    
+    sim808_send_command("AT+CGNSPWR=1\r\n"); // Activa GPS en el SIM808 (GPS power control)
       // Lee la respuesta para ver si es "OK"
     char response[64];
     sim808_read_response(response, sizeof(response));
@@ -37,7 +38,6 @@ int sim808_init() {
     } else {
         return 0;  // Error en la inicialización
     }
-    sim808_send_command("AT+CGNSPWR=1\r\n"); // Activa GPS en el SIM808 (GPS power control)
 }
 
 void sim808_send_command(const char *command) {
