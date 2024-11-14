@@ -52,9 +52,10 @@ void sim808_read_response(char *buffer, size_t buffer_size) {
     int length = uart_read_bytes(UART_NUM, (uint8_t *)buffer, buffer_size - 1, 100 / portTICK_PERIOD_MS);
     if (length > 0) {
         buffer[length] = '\0';  // Termina el string
+        printf("Respuesta del módulo SIM808: %s\n", buffer);
     } else {
         buffer[0] = '\0';  // No hay datos
-        printf("No se recibió nada en el buffer de recepción.\n");
+        //printf("No se recibió nada en el buffer de recepción.\n");
     }
 }
 
@@ -83,6 +84,11 @@ void monitorizar_vbat() {
             printf("No se pudo obtener el voltaje de la batería.\n");
         }
     } else {
-        printf("No se recibió respuesta o hubo un error al leer.\n");
+        //printf("No se recibió respuesta o hubo un error al leer.\n");
     }
+}
+
+void read_gps_data(void) {
+    // Enviar comando AT+CGNSINF para obtener las coordenadas GPS
+    sim808_send_command("AT+CGNSINF\r\n");
 }

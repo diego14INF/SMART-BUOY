@@ -5,7 +5,7 @@
 
 void app_main(void) {
     // Inicializa el módulo SIM808
-    sim808_init();
+    sim808_init();    
     
     while (1) {
         // Obtiene la respuesta del módulo SIM808
@@ -19,8 +19,12 @@ void app_main(void) {
             printf("Longitud: %f\n", gps_data.longitude);
         }
         
-       // monitorizar_vbat();
+        monitorizar_vbat();
+       
        // Retraso de 1 segundo
         esp_rom_delay_us(1000000);   // 1000 ms = 1000000 us
+
+        read_gps_data();
     }
+    
 }
