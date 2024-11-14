@@ -27,9 +27,11 @@ int sim808_init() {
     uart_driver_install(UART_NUM, 2048, 0, 0, NULL, 0);
 
     // Configuración inicial del SIM808
+    //sim808_send_command("ATE0\r\n"); //Desactiva modo echo, para comprobar recepcion correcta de los mensajes
+    
     sim808_send_command("AT\r\n");          // Prueba conexión
     
-    sim808_send_command("AT+CGNSPWR=1\r\n"); // Activa GPS en el SIM808 (GPS power control)
+    sim808_send_command("AT+CGNSPWR=1\r\n"); // Activ a GPS en el SIM808 (GPS power control)
       // Lee la respuesta para ver si es "OK"
     char response[64];
     sim808_read_response(response, sizeof(response));
@@ -38,6 +40,7 @@ int sim808_init() {
     } else {
         return 0;  // Error en la inicialización
     }
+    
 }
 
 void sim808_send_command(const char *command) {
