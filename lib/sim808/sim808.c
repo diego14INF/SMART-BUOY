@@ -102,16 +102,16 @@ int sim808_get_battery_status(int *battery_voltage) {
      
 }
 
-void sim808_send_data_over_gsm(const GPSData *gps_data) {
-    char message[256];
-    snprintf(message, sizeof(message),
-             "Location: lat=%.6f, lon=%.6f, alt=%.2f, speed=%.2f, course=%.2f, battery=%d mV",
-             gps_data->latitude, gps_data->longitude, gps_data->altitude,
-             gps_data->speed, gps_data->course);
+// void sim808_send_data_over_gsm(const GPSData *gps_data) {
+//     char message[256];
+//     snprintf(message, sizeof(message),
+//              "Location: lat=%.6f, lon=%.6f, alt=%.2f, speed=%.2f, course=%.2f, battery=%d mV",
+//              gps_data->latitude, gps_data->longitude, gps_data->altitude,
+//              gps_data->speed, gps_data->course);
 
-    // Enviar mensaje de datos por GSM
-    sim808_send_command(SMS_CONFIG_COMAND); 
-    sim808_send_command(TLF_CONFIG_COMMAND);  // Número de destino
-    sim808_send_command(message);
-    uart_write_bytes(UART_NUM, "\x1A", 1);  // Enviar CTRL+Z para enviar SMS
-}
+//     // Enviar mensaje de datos por GSM
+//     sim808_send_command(SMS_CONFIG_COMAND); 
+//     sim808_send_command(TLF_CONFIG_COMMAND);  // Número de destino
+//     sim808_send_command(message);
+//     uart_write_bytes(UART_NUM, "\x1A", 1);  // Enviar CTRL+Z para enviar SMS
+// }

@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include "sim808.h" // Archivo de encabezado que contiene las declaraciones de las funciones y estructuras
+#include <esp_rom_sys.h>  // Necesario para `esp_rom_delay_us()`
 
 void app_main(void) {
     printf("Iniciando programa con SIM808...\n");
@@ -11,7 +12,7 @@ void app_main(void) {
         return; // Salir si no se inicializa correctamente
     }
     // Reiniciar el GPS en modo "Cold Start" (por ejemplo)
-    sim808_gps_reset_mode(3); // 3 representa "Cold Start" en nuestro programa
+    //sim808_gps_reset_mode(3); // 3 representa "Cold Start" en nuestro programa
 
     // Obtener estado actual del GPS
     sim808_gps_get_status();
@@ -40,8 +41,8 @@ void app_main(void) {
         sim808_get_battery_status(&battery_voltage);
 
         // Enviar datos a través de GSM
-        printf("Enviando datos mediante GSM...\n");
-        sim808_send_data_over_gsm(&gps_data);
+        //printf("Enviando datos mediante GSM...\n");
+        //sim808_send_data_over_gsm(&gps_data);
 
         // Retraso de 1 segundo
         esp_rom_delay_us(2000000);   // 1000 ms = 1000000 us
