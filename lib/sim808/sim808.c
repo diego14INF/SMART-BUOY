@@ -125,7 +125,7 @@ int sim808_get_gps_data(GPSData *data) {
                 data->longitude=lon;
                 data->altitude=alt;
                 data->speed=vel;
-                data->latitude=curs;
+                data->course=curs;
                }
                printf("Latitud: %.6f, Longitud: %.6f, Altitud: %.2f m, Velocidad: %.2f km/h, Curso: %.2f°\n",
                    data->latitude, data->longitude, data->altitude, data->speed,data->course);

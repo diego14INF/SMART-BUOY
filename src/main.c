@@ -17,7 +17,7 @@ void app_main(void) {
     // Obtener estado actual del GPS
     sim808_gps_get_status();
 
-    // Estructura para almacenar datos del GPS
+    //Estructura para almacenar datos del GPS
     GPSData gps_data;
 
     // Variables para monitorear la batería
