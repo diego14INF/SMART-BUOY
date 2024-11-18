@@ -118,9 +118,18 @@ int sim808_get_gps_data(GPSData *data) {
     sim808_read_response(response, BUF_SIZE);
 
     if (strstr(response, "+CGNSINF: ")) {
-        sscanf(response, "+CGNSINF: %*d,%*d,%*f,%f,%f,%f,%f,%f", 
-               &data->latitude, &data->longitude, &data->altitude, 
-               &data->speed, &data->course);
+        float lat,lon,alt,vel,curs;
+        if (sscanf(response, "+CGNSINF: %*d,%*d,%*f,%f,%f,%f,%f,%f", 
+               &lat, &lon, &alt, &vel, &curs)==5){
+                data->latitude=lat;
+                data->longitude=lon;
+                data->altitude=alt;
+                data->speed=vel;
+                data->latitude=curs;
+               }
+               printf("Latitud: %.6f, Longitud: %.6f, Altitud: %.2f m, Velocidad: %.2f km/h, Curso: %.2f°\n",
+                   data->latitude, data->longitude, data->altitude, data->speed,data->course);
+
         return 1;
     }
     return 0;

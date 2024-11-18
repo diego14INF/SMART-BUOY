@@ -27,12 +27,7 @@ void app_main(void) {
     while (1) {
 
         // Obtener datos de geolocalización
-        if (sim808_get_gps_data(&gps_data)) {
-            printf("Datos de GPS obtenidos:\n");
-            printf("Latitud: %.6f, Longitud: %.6f, Altitud: %.2f m, Velocidad: %.2f km/h, Curso: %.2f°\n",
-                   gps_data.latitude, gps_data.longitude, gps_data.altitude,
-                   gps_data.speed, gps_data.course);
-        }
+        sim808_get_gps_data(&gps_data);
 
         // Monitorear la batería
         //sim808_get_battery_status(&battery_voltage);
