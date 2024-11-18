@@ -9,7 +9,8 @@ typedef struct {
     float altitude;
     float speed;
     float course;
-    //int battery_voltage;
+    int battery_level;
+    int battery_voltage;
 } GPSData;
 
 //Funciones para la comunicación UART
@@ -34,7 +35,7 @@ void sim808_gps_get_status(void);
 int sim808_get_gps_data(GPSData *data);
 
 //Obtiene los valores de la batería del módulo
-int sim808_get_battery_status(int *battery_voltage);
+int sim808_get_battery_status(GPSData *battery_voltage);
 
 // Prepara y envía datos mediante GSM
 void sim808_send_data_over_gsm(const GPSData *gps_data);

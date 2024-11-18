@@ -119,7 +119,7 @@ int sim808_get_gps_data(GPSData *data) {
 
     if (strstr(response, "+CGNSINF: ")) {
         float lat,lon,alt,vel,curs;
-        if (sscanf(response, "+CGNSINF: %*d,%*d,%*f,%f,%f,%f,%f,%f", 
+        if (sscanf(strstr(response, "+CGNSINF: "), "+CGNSINF: %*d,%*d,%*f,%f,%f,%f,%f,%f", 
                &lat, &lon, &alt, &vel, &curs)==5){
                 data->latitude=lat;
                 data->longitude=lon;
@@ -135,22 +135,24 @@ int sim808_get_gps_data(GPSData *data) {
     return 0;
 }
 
-// Obtiene el voltaje de la batería (Los datos vienen dados como: 0-1 entero(estado de carga), 0-100(% de carga), 0-5000 (Voltaje en mV))
-// int sim808_get_battery_status(int *battery_voltage) {
-//     sim808_send_command(BATTERY_COMMAND);
-//     char response[BUF_SIZE];
-//     sim808_read_response(response, BUF_SIZE);
-
-//     if (strstr(response, "+CBC: ")) {
-//         sscanf(response, "+CBC: %*d,%*d,%d", battery_voltage); //Pendiente de corregir
-//         return 1;
-//         printf("Voltaje de la batería: %d mV\n", *battery_voltage);
-//     }else {
-//         printf("No se pudo obtener el voltaje de la batería.\n");
-//     }
-//     return 0;
+//Obtiene el voltaje de la batería (Los datos vienen dados como: 0-1 entero(estado de carga), 0-100(% de carga), 0-5000 (Voltaje en mV))
+int sim808_get_battery_status(GPSData *data) {
+    sim808_send_command(BATTERY_COMMAND);
+    char response[BUF_SIZE];
+    sim808_read_response(response, BUF_SIZE);
+    int level,vbat;
     
-//}
+    if (sscanf(strstr(response, "+CBC: "), "+CBC: %*d,%d,%d", &level,&vbat)==2){ //Pendiente de corregir
+        data->battery_level= level;
+        data->battery_voltage= vbat;
+        printf("Nivel de la bateria: %d, Voltaje de la batería: %d mV\n", data->battery_level, data->battery_voltage); 
+        return 1;
+    }else {
+        printf("No se pudo obtener el voltaje de la batería.\n");
+    }
+    return 0;
+    
+}
 
 // void sim808_send_data_over_gsm(const GPSData *gps_data) {
 //     char message[256];

@@ -20,9 +20,6 @@ void app_main(void) {
     //Estructura para almacenar datos del GPS
     GPSData gps_data;
 
-    // Variables para monitorear la batería
-    //int battery_voltage;
-
     // Ciclo principal
     while (1) {
 
@@ -30,7 +27,7 @@ void app_main(void) {
         sim808_get_gps_data(&gps_data);
 
         // Monitorear la batería
-        //sim808_get_battery_status(&battery_voltage);
+        sim808_get_battery_status(&gps_data);
 
         // Enviar datos a través de GSM
         //printf("Enviando datos mediante GSM...\n");
