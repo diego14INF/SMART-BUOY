@@ -71,14 +71,15 @@ int sim808_init() {
     sim808_send_command(GPS_PWR_ON_COMMAND);
     char response[64];
     sim808_read_response(response, sizeof(response));
-    
+
+    printf("Respuesta a la inicialización: %s\n", response);
+
     if (strstr(response, "OK") != NULL) {
         
         return 1;  // Inicialización exitosa
     } else {
         return 0;  // Error en la inicialización
     }
-    printf("Respuesta a la inicialización: %s\n", response);
 }
 
 void sim808_gps_reset_mode(int mode) {
