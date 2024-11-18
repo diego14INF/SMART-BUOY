@@ -9,10 +9,10 @@ void app_main(void) {
     // Inicializar el módulo SIM808
     if (sim808_init()==0){
         printf("Error al inicializar el SIM808.\n");
-        return; // Salir si no se inicializa correctamente
+        //return; // Salir si no se inicializa correctamente
     }
     // Reiniciar el GPS en modo "Cold Start" (por ejemplo)
-    //sim808_gps_reset_mode(3); // 3 representa "Cold Start" en nuestro programa
+    sim808_gps_reset_mode(2); // 3 representa "Cold Start" en nuestro programa
 
     // Obtener estado actual del GPS
     sim808_gps_get_status();
@@ -21,11 +21,10 @@ void app_main(void) {
     GPSData gps_data;
 
     // Variables para monitorear la batería
-    int battery_voltage;
+    //int battery_voltage;
 
     // Ciclo principal
     while (1) {
-        printf("Recopilando datos del SIM808...\n");
 
         // Obtener datos de geolocalización
         if (sim808_get_gps_data(&gps_data)) {
@@ -33,12 +32,10 @@ void app_main(void) {
             printf("Latitud: %.6f, Longitud: %.6f, Altitud: %.2f m, Velocidad: %.2f km/h, Curso: %.2f°\n",
                    gps_data.latitude, gps_data.longitude, gps_data.altitude,
                    gps_data.speed, gps_data.course);
-        } else {
-            printf("Error al obtener datos de GPS.\n");
         }
 
         // Monitorear la batería
-        sim808_get_battery_status(&battery_voltage);
+        //sim808_get_battery_status(&battery_voltage);
 
         // Enviar datos a través de GSM
         //printf("Enviando datos mediante GSM...\n");

@@ -9,7 +9,7 @@ typedef struct {
     float altitude;
     float speed;
     float course;
-//int battery_voltage;
+    //int battery_voltage;
 } GPSData;
 
 //Funciones para la comunicación UART
