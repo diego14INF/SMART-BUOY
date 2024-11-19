@@ -1,7 +1,7 @@
 #ifndef DATA_STORAGE_H
 #define DATA_STORAGE_H
 
-#include "sim808.h"
+#include "sim808_gps.h"
 
 #define STORAGE_SIZE 100
 

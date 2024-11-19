@@ -1,5 +1,5 @@
-#ifndef GSM_COMM_H
-#define GSM_COMM_H
+#ifndef GSM_DATA_H
+#define GSM_DATA_H
 
 #include "data_storage.h"
 

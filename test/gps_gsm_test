@@ -1,7 +1,9 @@
-#include "sim808.h"
+#include "sim808_gps.h"
 #include "data_storage.h"
-#include "gsm_comm.h"
+#include "gsm_data.h"
 #include <assert.h>
+#include "sim808_gprs.h"
+#include "unity.h"
 
 void test_gps_data_parsing() {
     GPSData gps_data;
@@ -17,7 +19,7 @@ void test_battery_status() {
 
 void test_data_storage() {
     data_storage_init();
-    GPSData gps_data = {40.712776, -74.005974, 30.0, 0.0, 0.0, 3700};
+    GPSData gps_data = {42.210323, -8.722028, 30.0, 0.0, 0.0, 3700};
     data_storage_save(&gps_data);
     assert(data_storage_get_count() == 1);
 }
@@ -29,11 +31,21 @@ void test_gsm_data_preparation() {
     printf("Prepared data:\n%s\n", buffer);
 }
 
-int main() {
+void test_gsm_init(){
+    int result= sim808_gprs_connect();
+    assert(result==1);
+}
+
+
+void app_main()
+{
+  UNITY_BEGIN();
     test_gps_data_parsing();
     test_battery_status();
     test_data_storage();
     test_gsm_data_preparation();
+    test_gsm_init();
     printf("All tests passed!\n");
-    return 0;
+   
+    UNITY_END();
 }

@@ -10,13 +10,21 @@ void data_storage_init() {
 }
 
 int data_storage_save(GPSData *data) {
-    if (storage_count < STORAGE_SIZE) {
+     if (storage_count < STORAGE_SIZE) {
+        // Si hay espacio, añade directamente
         storage[storage_count].timestamp = time(NULL);
         storage[storage_count].gps_data = *data;
         storage_count++;
-        return 1;
+    } else {
+        // Si está lleno, elimina el más antiguo (desplaza todos los datos)
+        for (int i = 1; i < STORAGE_SIZE; i++) {
+            storage[i - 1] = storage[i];
+        }
+        // Añade el nuevo dato al final
+        storage[STORAGE_SIZE - 1].timestamp = time(NULL);
+        storage[STORAGE_SIZE - 1].gps_data = *data;
     }
-    return 0;
+    return 1;
 }
 
 DataEntry* data_storage_get_all() {
