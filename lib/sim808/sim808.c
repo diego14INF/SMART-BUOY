@@ -13,7 +13,7 @@
 #define GPS_INF_COMMAND "AT+CGNSINF\r\n"
 #define BATTERY_COMMAND "AT+CBC\r\n"
 #define GPS_RESET_MODE_COMMAND "AT+CGPSRST=%d\r\n" //0:hot reset, 1:warm reset, 2:cold reset
-#define GPS_STATUS_COMMAND "AT+CGPSSTATUS\r\n" 
+#define GPS_STATUS_COMMAND "AT+CGPSSTATUS?\r\n" 
 #define BUF_SIZE 1024
 #define SMS_CONFIG_COMAND "AT+CMGF=1\r\n" // Configura para enviar SMS
 #define TLF_CONFIG_COMMAND "AT+CMGS=\"+123456789\"\r\n" //Configura el número de destino
@@ -30,7 +30,7 @@ void sim808_read_response(char *buffer, size_t buffer_size) {
     TickType_t start_time = xTaskGetTickCount(); // Tiempo de inicio
 
     // Leer datos mientras no se excedan los 3 segundos y haya espacio en el buffer
-    while ((xTaskGetTickCount() - start_time) < (3000 / portTICK_PERIOD_MS)) {
+    while ((xTaskGetTickCount() - start_time) < (5000 / portTICK_PERIOD_MS)) {
         if (total_bytes_read < buffer_size - 1) {
             bytes_read = uart_read_bytes(UART_NUM, (uint8_t *)buffer + total_bytes_read, 
                                          buffer_size - 1 - total_bytes_read, 100 / portTICK_PERIOD_MS);
@@ -119,16 +119,18 @@ int sim808_get_gps_data(GPSData *data) {
 
     if (strstr(response, "+CGNSINF: ")) {
         float lat,lon,alt,vel,curs;
-        if (sscanf(strstr(response, "+CGNSINF: "), "+CGNSINF: %*d,%*d,%*f,%f,%f,%f,%f,%f", 
-               &lat, &lon, &alt, &vel, &curs)==5){
+        double time;
+        if (sscanf(strstr(response, "+CGNSINF: "), "+CGNSINF: %*d,%*d,%lf,%f,%f,%f,%f,%f", 
+               &time, &lat, &lon, &alt, &vel, &curs)==6){
+                data->time=time; 
                 data->latitude=lat;
                 data->longitude=lon;
                 data->altitude=alt;
                 data->speed=vel;
                 data->course=curs;
                }
-               printf("Latitud: %.6f, Longitud: %.6f, Altitud: %.2f m, Velocidad: %.2f km/h, Curso: %.2f°\n",
-                   data->latitude, data->longitude, data->altitude, data->speed,data->course);
+               printf("Fecha&hora: %.0f, Latitud: %.6f, Longitud: %.6f, Altitud: %.2f m, Velocidad: %.2f km/h, Curso: %.2f°\n",
+                   data->time, data->latitude, data->longitude, data->altitude, data->speed,data->course);
 
         return 1;
     }
@@ -142,7 +144,7 @@ int sim808_get_battery_status(GPSData *data) {
     sim808_read_response(response, BUF_SIZE);
     int level,vbat;
     
-    if (sscanf(strstr(response, "+CBC: "), "+CBC: %*d,%d,%d", &level,&vbat)==2){ //Pendiente de corregir
+    if (sscanf(strstr(response, "+CBC: "), "+CBC: %*d,%d,%d", &level,&vbat)==2){ 
         data->battery_level= level;
         data->battery_voltage= vbat;
         printf("Nivel de la bateria: %d, Voltaje de la batería: %d mV\n", data->battery_level, data->battery_voltage); 

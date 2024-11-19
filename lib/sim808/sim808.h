@@ -4,6 +4,7 @@
 #include <time.h>
 
 typedef struct {
+    double time;
     float latitude;
     float longitude;
     float altitude;
@@ -17,6 +18,8 @@ typedef struct {
 void sim808_send_command(const char *command);
 
 void sim808_read_response(char *buffer, size_t buffer_size);
+
+void format_utc_time(const char *utc_time);
 
 // Funciones para inicializar y obtener datos del SIM808
 // Inicializa el módulo SIM808

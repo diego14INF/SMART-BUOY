@@ -29,11 +29,15 @@ void app_main(void) {
         // Monitorear la batería
         sim808_get_battery_status(&gps_data);
 
+        // Obtener estado actual del GPS
+        sim808_gps_get_status();
+
         // Enviar datos a través de GSM
         //printf("Enviando datos mediante GSM...\n");
         //sim808_send_data_over_gsm(&gps_data);
 
         // Retraso de 1 segundo
         esp_rom_delay_us(2000000);   // 1000 ms = 1000000 us
+
     }
 }
