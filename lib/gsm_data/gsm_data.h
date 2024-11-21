@@ -4,7 +4,7 @@
 #include "data_storage.h"
 
 // Funciones para preparar y enviar datos por GSM
-int gsm_prepare_data(char *buffer, size_t buffer_size);
-int gsm_send_data(const char *data);
+int gsm_prepare_batch(char *buffer, size_t buffer_size, int start_index);
+int gsm_send_data_in_batches();
 
 #endif // GSM_COMM_H

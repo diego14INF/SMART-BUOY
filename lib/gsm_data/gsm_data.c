@@ -12,8 +12,8 @@ int gsm_prepare_batch(char *buffer, size_t buffer_size, int start_index) {
 
     for (int i = start_index; i < start_index + GSM_BATCH_SIZE && i < count; i++) {
         offset += snprintf(buffer + offset, buffer_size - offset,
-                           "Time: %lld, Lat: %.6f, Lon: %.6f, Alt: %.2f, Speed: %.2f, Course: %.2f, Battery: %d\n",
-                           entries[i].timestamp, entries[i].gps_data.latitude,
+                           "Time ESP32: %lld,Time SIM808: %lf Lat: %.6f, Lon: %.6f, Alt: %.2f, Speed: %.2f, Course: %.2f, Battery: %d\n",
+                           entries[i].timestamp,entries[i].gps_data.time, entries[i].gps_data.latitude,
                            entries[i].gps_data.longitude, entries[i].gps_data.altitude,
                            entries[i].gps_data.speed, entries[i].gps_data.course,
                            entries[i].gps_data.battery_voltage);
@@ -25,16 +25,9 @@ int gsm_prepare_batch(char *buffer, size_t buffer_size, int start_index) {
     return offset; // Devuelve el tamaño de los datos preparados
 }
 
-// Simula el envío de datos por GSM, y retorna confirmación (1 = éxito, 0 = fallo)
-int gsm_send_data(const char *data) {
-    printf("Sending data over GSM:\n%s\n", data);
-
-    // Simula recepción de confirmación (1: éxito, 0: fallo aleatorio para prueba)
-    return rand() % 2; 
-}
 
 // Gestiona el envío de tramas de 20 entradas de la memoria
-void gsm_send_data_in_batches() {
+int gsm_send_data_in_batches() {
     char buffer[1024]; // Buffer para las tramas GSM
     int start_index = 0; // Índice inicial de las entradas a enviar
     int retries = 0;     // Número de reintentos de envío
@@ -63,6 +56,7 @@ void gsm_send_data_in_batches() {
             // Avanza al siguiente lote
             start_index += GSM_BATCH_SIZE;
             retries = 0;
+            return 1;
         } else {
             printf("Failed to send batch after %d retries.\n", GSM_MAX_RETRIES);
             if (data_storage_get_count() > STORAGE_SIZE - GSM_BATCH_SIZE) {
@@ -71,10 +65,11 @@ void gsm_send_data_in_batches() {
             } else {
                 break; // Salir si no hay suficiente memoria nueva
             }
+            return 0;
         }
 
         // Si no hay más datos en la memoria, salir del bucle
-        if (start_index >= data_storage_get_count()) {
+        if (start_index >= prepared_size) {
             printf("All data processed.\n");
             break;
         }

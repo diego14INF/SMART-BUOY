@@ -19,8 +19,6 @@ void sim808_send_command(const char *command);
 
 void sim808_read_response(char *buffer, size_t buffer_size);
 
-void format_utc_time(const char *utc_time);
-
 // Funciones para inicializar y obtener datos del SIM808
 // Inicializa el módulo SIM808
 int sim808_init(void);
@@ -40,7 +38,5 @@ int sim808_get_gps_data(GPSData *data);
 //Obtiene los valores de la batería del módulo
 int sim808_get_battery_status(GPSData *battery_voltage);
 
-// Prepara y envía datos mediante GSM
-void sim808_send_data_over_gsm(const GPSData *gps_data);
 
 #endif // SIM808_H
