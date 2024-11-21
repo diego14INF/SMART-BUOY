@@ -10,6 +10,7 @@
 
 
 void init_timer(int timer_interval_sec);
+bool is_timer_finished();
 void IRAM_ATTR timer_isr_callback(void *arg); //Callback para manejar las interrupciones del temporizador. arg - Puntero a argumentos (si se necesita, se puede pasar NULL).
 
 #endif // TIMER_MANAGER_H

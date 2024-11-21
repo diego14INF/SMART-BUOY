@@ -30,7 +30,7 @@ int sim808_init(void);
 void sim808_gps_reset_mode(int mode);
 
 // Obtiene el estado actual del GPS
-void sim808_gps_get_status(void);
+int sim808_gps_get_status(void);
 
 //Obtiene los datos de geolocalización
 int sim808_get_gps_data(GPSData *data);

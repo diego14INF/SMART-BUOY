@@ -91,7 +91,7 @@ void sim808_gps_reset_mode(int mode) {
     printf("Respuesta de GPS reset: %s\n", command);
 }
 
-void sim808_gps_get_status() {
+int sim808_gps_get_status() {
     sim808_send_command(GPS_STATUS_COMMAND);
     char response[128];
     sim808_read_response(response, sizeof(response));
@@ -99,14 +99,19 @@ void sim808_gps_get_status() {
      // Verificar y mostrar el estado del GPS basado en la respuesta
     if (strstr(response, "Location 3D Fix") != NULL) {
         printf("GPS: Fijación de ubicación en 3D.\n");
+        return 1;
     } else if (strstr(response, "Location 2D Fix") != NULL) {
         printf("GPS: Fijación de ubicación en 2D.\n");
+        return 1;
     } else if (strstr(response, "Location Not Fix") != NULL) {
         printf("GPS: Ubicación conocida, pero sin fijación.\n");
+        return 2;
     } else if (strstr(response, "Location Unknown") != NULL) {
         printf("GPS: Ubicación desconocida.\n");
+        return 3;
     } else {
         printf("GPS: Estado desconocido o sin respuesta.\n");
+        return 4;
     }
 
 }

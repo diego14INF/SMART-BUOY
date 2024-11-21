@@ -28,12 +28,20 @@ void init_timer(int timer_interval_sec) {
     timer_set_counter_value(TIMER_GROUP, TIMER_INDEX, timer_interval_sec * 1000000); // En microsegundos
 
     // Configura la alarma
-    timer_set_alarm_value(TIMER_GROUP, TIMER_INDEX, 0); // Alarma al llegar a 0
-    timer_enable_intr(TIMER_GROUP, TIMER_INDEX);        // Habilita interrupción
+   // timer_set_alarm_value(TIMER_GROUP, TIMER_INDEX, 0); // Alarma al llegar a 0
+   // timer_enable_intr(TIMER_GROUP, TIMER_INDEX);        // Habilita interrupción
 
     // Registra la interrupción y el callback
-    timer_isr_callback_add(TIMER_GROUP, TIMER_INDEX, timer_isr_callback, NULL, 0);
+  //  timer_isr_callback_add(TIMER_GROUP, TIMER_INDEX, timer_isr_callback, NULL, 0);
 
     // Inicia el temporizador
     timer_start(TIMER_GROUP, TIMER_INDEX);
+}
+
+bool is_timer_finished() {
+    int64_t counter_value = 0;
+    timer_get_counter_value(TIMER_GROUP, TIMER_INDEX, &counter_value);
+
+    // Si el contador está en 0, el temporizador terminó
+    return counter_value <= 0;
 }
