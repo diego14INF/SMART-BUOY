@@ -1,10 +1,10 @@
-#ifndef GSM_DATA_H
-#define GSM_DATA_H
+// #ifndef GSM_DATA_H
+// #define GSM_DATA_H
 
-#include "data_storage.h"
+// #include "data_storage.h"
 
-// Funciones para preparar y enviar datos por GSM
-int gsm_prepare_batch(char *buffer, size_t buffer_size, int start_index);
-int gsm_send_data_in_batches();
+// // Funciones para preparar y enviar datos por GSM
+// int gsm_prepare_batch(char *buffer, size_t buffer_size, int start_index);
+// int gsm_send_data_in_batches();
 
-#endif // GSM_COMM_H
+// #endif // GSM_COMM_H

@@ -1,16 +1,16 @@
 #include "timers.h"
 
 // Handler de interrupción
-void IRAM_ATTR timer_isr_callback(void *arg) {
-    // Limpia la interrupción del temporizador
-    timer_group_clr_intr_status_in_isr(TIMER_GROUP, TIMER_INDEX);
+// void IRAM_ATTR timer_isr_callback(void *arg) {
+//     // Limpia la interrupción del temporizador
+//     timer_group_clr_intr_status_in_isr(TIMER_GROUP, TIMER_INDEX);
 
-    // Reactiva el temporizador (si es necesario)
-    timer_group_enable_alarm_in_isr(TIMER_GROUP, TIMER_INDEX);
+//     // Reactiva el temporizador (si es necesario)
+//     timer_group_enable_alarm_in_isr(TIMER_GROUP, TIMER_INDEX);
 
-    // Realiza alguna acción
-    printf("¡Temporizador alcanzó 0!\n");
-}
+//     // Realiza alguna acción
+//     printf("¡Temporizador alcanzó 0!\n");
+// }
 
 // Configura el temporizador
 void init_timer(int timer_interval_sec) {
@@ -39,7 +39,7 @@ void init_timer(int timer_interval_sec) {
 }
 
 bool is_timer_finished() {
-    int64_t counter_value = 0;
+    uint64_t counter_value = 0;
     timer_get_counter_value(TIMER_GROUP, TIMER_INDEX, &counter_value);
 
     // Si el contador está en 0, el temporizador terminó

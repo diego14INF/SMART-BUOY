@@ -5,6 +5,7 @@
 #include "data_storage.h"
 #include "sim808_gprs.h"
 #include "gps_state_machine.h"
+#include "timers.h"
 
 void app_main(void) {
 
@@ -20,9 +21,9 @@ void app_main(void) {
 
 
      //Inicialización del módulo GPRS SIM808
-    if (sim808_gprs_connect()==0) {
-        printf("Error al inicializar el GPRS del SIM808.\n");
-    }
+    // if (sim808_gprs_connect()==0) {
+    //     printf("Error al inicializar el GPRS del SIM808.\n");
+    // }
     //---------------------------------------- 
 
     // Ciclo principal

@@ -47,7 +47,7 @@ void start_gps_reset_timer(int reset_type) {
             timer_duration = TIMER_HOT_RESET;
             break;
     }
-    init_timer(timer_duration);
+    //init_timer(timer_duration);
     printf("Temporizador iniciado para reinicio %d: %d s.\n", reset_type, timer_duration);
 }
 
@@ -60,11 +60,11 @@ void gps_state_machine_run(void) {
             if (gps_mode==1) {
                 current_state = STATE_ACQUIRE_DATA;
             } else {
-                 if (is_timer_finished()!=1) {
-                    // Espera a que el temporizador expire antes de permitir otro reinicio
-                    printf("Esperando que el temporizador de reinicio expire...\n");
-                    break;
-                }
+                //  if (is_timer_finished()!=1) {
+                //     // Espera a que el temporizador expire antes de permitir otro reinicio
+                //     printf("Esperando que el temporizador de reinicio expire...\n");
+                //     break;
+                // }
                 printf("GPS no está OK. Intentando reiniciar...\n");
                 gps_retry_count++;
                 if (gps_retry_count <= MAX_GPS_RETRIES) {

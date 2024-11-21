@@ -1,59 +1,59 @@
-#include "sim808_gprs.h"
-#include "sim808_gps.h"
-#include "gsm_data.h"
-#include <stdio.h>
-#include <string.h>
-#include "driver/uart.h"
+// #include "sim808_gprs.h"
+// #include "sim808_gps.h"
+// #include "gsm_data.h"
+// #include <stdio.h>
+// #include <string.h>
+// #include "driver/uart.h"
 
-#define UART_NUM UART_NUM_1
-// Comandos AT para conexión GPRS
-#define AT_GPRS_INIT "AT+CGATT=1\r\n"       // Conectar a la red GPRS
-#define AT_GPRS_APN "AT+CGDCONT=1,\"IP\",\"" APN "\"\r\n" // Configuración APN
-#define AT_GPRS_STATUS "AT+CGACT?\r\n"      // Comprobar estado de la conexión GPRS
-#define AT_TCP_CONNECT "AT+CIICR\r\n"       // Activar GPRS
-#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" #define GPRS_PORT "\"\r\n" // Conectar a servidor TCP
+// #define UART_NUM UART_NUM_1
+// // Comandos AT para conexión GPRS
+// #define AT_GPRS_INIT "AT+CGATT=1\r\n"       // Conectar a la red GPRS
+// #define AT_GPRS_APN "AT+CGDCONT=1,\"IP\",\"" APN "\"\r\n" // Configuración APN
+// #define AT_GPRS_STATUS "AT+CGACT?\r\n"      // Comprobar estado de la conexión GPRS
+// #define AT_TCP_CONNECT "AT+CIICR\r\n"       // Activar GPRS
+// #define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" #define GPRS_PORT "\"\r\n" // Conectar a servidor TCP
 
-// Conectar a la red GPRS
-int sim808_gprs_connect(void) {
-    char response[64];
-    // Enviar comandos para activar GPRS
-    sim808_send_command(AT_GPRS_INIT);
-    sim808_read_response(NULL, 0);
+// // Conectar a la red GPRS
+// int sim808_gprs_connect(void) {
+//     char response[64];
+//     // Enviar comandos para activar GPRS
+//     sim808_send_command(AT_GPRS_INIT);
+//     sim808_read_response(NULL, 0);
 
-    sim808_send_command(AT_GPRS_APN);
-    sim808_read_response(NULL, 0);
+//     sim808_send_command(AT_GPRS_APN);
+//     sim808_read_response(NULL, 0);
 
-    sim808_send_command(AT_GPRS_STATUS);
-    sim808_read_response(NULL, 0);
+//     sim808_send_command(AT_GPRS_STATUS);
+//     sim808_read_response(NULL, 0);
 
-    //sim808_send_command(AT_TCP_CONNECT);
-    if (strstr(response, "OK")) {
-        return 1;  // Conexión GPRS exitosa
-    }
-    return 0;  // Error al conectar
-}
+//     //sim808_send_command(AT_TCP_CONNECT);
+//     if (strstr(response, "OK")) {
+//         return 1;  // Conexión GPRS exitosa
+//     }
+//     return 0;  // Error al conectar
+// }
 
-// Enviar los datos por GPRS
-void sim808_gprs_send_data(const GPSData *gps_data) {
-    char data_buffer[256];
-    snprintf(data_buffer, sizeof(data_buffer),
-             "Time: %lf, Lat: %.6f, Lon: %.6f, Alt: %.2f, Speed: %.2f, Course: %.2f, Battery: %d\n",
-             gps_data->time, gps_data->latitude, gps_data->longitude, 
-             gps_data->altitude, gps_data->speed, gps_data->course, gps_data->battery_voltage);
+// // Enviar los datos por GPRS
+// void sim808_gprs_send_data(const GPSData *gps_data) {
+//     char data_buffer[256];
+//     snprintf(data_buffer, sizeof(data_buffer),
+//              "Time: %lf, Lat: %.6f, Lon: %.6f, Alt: %.2f, Speed: %.2f, Course: %.2f, Battery: %d\n",
+//              gps_data->time, gps_data->latitude, gps_data->longitude, 
+//              gps_data->altitude, gps_data->speed, gps_data->course, gps_data->battery_voltage);
 
-    // Iniciar la transmisión de datos
-    sim808_send_command("AT+CIPSEND\r\n");
-    sim808_send_command(data_buffer);
-    uart_write_bytes(UART_NUM, "\x1A", 1);  // CTRL+Z para enviar
+//     // Iniciar la transmisión de datos
+//     sim808_send_command("AT+CIPSEND\r\n");
+//     sim808_send_command(data_buffer);
+//     uart_write_bytes(UART_NUM, "\x1A", 1);  // CTRL+Z para enviar
 
-    // Verificar si el envío fue exitoso
-    sim808_read_response(NULL, 0);
-    printf("Datos enviados: %s\n", data_buffer);
-}
+//     // Verificar si el envío fue exitoso
+//     sim808_read_response(NULL, 0);
+//     printf("Datos enviados: %s\n", data_buffer);
+// }
 
-// Desconectar la sesión GPRS
-int sim808_gprs_disconnect(void) {
-    sim808_send_command("AT+CIPSHUT\r\n");  // Cerrar la conexión GPRS
-    sim808_read_response(NULL, 0);
-    return 1;
-}
+// // Desconectar la sesión GPRS
+// int sim808_gprs_disconnect(void) {
+//     sim808_send_command("AT+CIPSHUT\r\n");  // Cerrar la conexión GPRS
+//     sim808_read_response(NULL, 0);
+//     return 1;
+// }
