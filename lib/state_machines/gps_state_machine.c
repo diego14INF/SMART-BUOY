@@ -12,15 +12,16 @@
 #define GPS_HOT_RESET 0
 
 // Tiempos de espera en milisegundos para cada tipo de reinicio
-#define TIMER_COLD_RESET 15
-#define TIMER_WARM_RESET 10
-#define TIMER_HOT_RESET 5
+#define TIMER_COLD_RESET 5
+#define TIMER_WARM_RESET 3
+#define TIMER_HOT_RESET 2
 
 // Estado actual y variables de control
 static GPSState current_state = STATE_VERIFY_GPS;
 static int gps_retry_count = 0;
 static int acquisition_retry_count = 0;
 static int gps_mode = 0;
+int reset_type;
 GPSData gps_data;
 
 
@@ -47,7 +48,7 @@ void start_gps_reset_timer(int reset_type) {
             timer_duration = TIMER_HOT_RESET;
             break;
     }
-    //init_timer(timer_duration);
+    init_timer(timer_duration);
     printf("Temporizador iniciado para reinicio %d: %d s.\n", reset_type, timer_duration);
 }
 
@@ -60,28 +61,23 @@ void gps_state_machine_run(void) {
             if (gps_mode==1) {
                 current_state = STATE_ACQUIRE_DATA;
             } else {
-                //  if (is_timer_finished()!=1) {
-                //     // Espera a que el temporizador expire antes de permitir otro reinicio
-                //     printf("Esperando que el temporizador de reinicio expire...\n");
-                //     break;
-                // }
                 printf("GPS no está OK. Intentando reiniciar...\n");
                 gps_retry_count++;
                 if (gps_retry_count <= MAX_GPS_RETRIES) {
-                    int reset_type;
-                    // Cambiar el tipo de reinicio en función del intento
+                    // Cambiar el tipo de reinicio en función del estado
                     if (gps_mode % 4 == 0) {
                         reset_type=GPS_COLD_RESET;
                     } else if (gps_mode % 3 == 0){
                         reset_type=GPS_WARM_RESET;
                     } else if (gps_mode % 2 == 0){
                         reset_type=GPS_HOT_RESET;
+                    }
                     sim808_gps_reset_mode(reset_type);
                     start_gps_reset_timer(reset_type); // Inicia el temporizador
-                    }
+                    current_state=STATE_WAIT_TIMER;
                 } else {
                     printf("Error crítico: no se pudo verificar el GPS tras %d intentos.\n", MAX_GPS_RETRIES);
-                    current_state = STATE_ERROR;
+                    current_state = STATE_ACQUIRE_DATA; //Ahora digo que pase a adquisicion de datos porque no tengo respuesta buena del estado del gps
                 }
             }
             break;
@@ -111,6 +107,15 @@ void gps_state_machine_run(void) {
             } else {
                 printf("Error al almacenar los datos.\n");
                 current_state = STATE_ERROR;
+            }
+            break;
+
+        case STATE_WAIT_TIMER:
+           if (is_timer_finished()) {
+              printf("Temporizador de reinicio completado.\n");
+              current_state = STATE_VERIFY_GPS; // Regresa a verificar el GPS
+            } else {
+               vTaskDelay(10 / portTICK_PERIOD_MS); // Da tiempo al sistema operativo
             }
             break;
 

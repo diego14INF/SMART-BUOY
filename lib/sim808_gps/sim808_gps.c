@@ -111,7 +111,7 @@ int sim808_gps_get_status() {
         return 3;
     } else {
         printf("GPS: Estado desconocido o sin respuesta.\n");
-        return 1;
+        return 4;
     }
 
 }

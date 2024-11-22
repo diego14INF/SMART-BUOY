@@ -8,6 +8,7 @@ typedef enum {
     STATE_VERIFY_GPS,
     STATE_ACQUIRE_DATA,
     STATE_STORE_DATA,
+    STATE_WAIT_TIMER,
     STATE_ERROR
 } GPSState;
 
