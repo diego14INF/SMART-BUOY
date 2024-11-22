@@ -4,7 +4,7 @@ static gptimer_handle_t gptimer = NULL; // Manejador del temporizador, lo inicia
 static volatile bool timer_finished = false; // Bandera para indicar que el temporizador alcanzó 0 ( Volatile hace que el compilador no optimice el acesso a esta variable, que puede cambiar repentinamente dentro de una interrupcion)
 
 // Callback de interrupción del temporizador
-bool IRAM_ATTR timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *event_data, void *user_ctx) {
+bool timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *event_data, void *user_ctx) {
     // Marca el temporizador como finalizado
     timer_finished = true;
     printf("¡Temporizador alcanzó 0!\n");
@@ -36,6 +36,11 @@ void init_timer(int timer_interval_sec) {
         .on_alarm = timer_callback // Callback cuando se activa la alarma
     };
     ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, NULL));
+
+
+    // **Habilitar el temporizador**
+    ESP_ERROR_CHECK(gptimer_enable(gptimer));
+
 
     // Inicia el temporizador
     ESP_ERROR_CHECK(gptimer_start(gptimer));

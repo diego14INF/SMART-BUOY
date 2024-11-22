@@ -9,6 +9,6 @@
 
 void init_timer(int timer_interval_sec);
 bool is_timer_finished();
-bool IRAM_ATTR timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *event_data, void *user_ctx); //Callback para manejar las interrupciones del temporizador. arg - Puntero a argumentos (si se necesita, se puede pasar NULL).
+bool timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *event_data, void *user_ctx); //Callback para manejar las interrupciones del temporizador. arg - Puntero a argumentos (si se necesita, se puede pasar NULL).
 
 #endif // TIMER_MANAGER_H
