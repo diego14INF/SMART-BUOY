@@ -18,15 +18,15 @@ int sim808_gprs_connect(void) {
     char response[64];
     // Enviar comandos para activar GPRS
     sim808_send_command(AT_GPRS_INIT);
-    sim808_read_response(NULL, 0);
+    sim808_read_response(response, sizeof(response));
 
     sim808_send_command(AT_GPRS_APN);
-    sim808_read_response(NULL, 0);
+    sim808_read_response(response, sizeof(response));
 
     sim808_send_command(AT_GPRS_STATUS);
-    sim808_read_response(NULL, 0);
+    sim808_read_response(response, sizeof(response));
 
-    //sim808_send_command(AT_TCP_CONNECT);
+    sim808_send_command(AT_TCP_CONNECT);
     if (strstr(response, "OK")) {
         return 1;  // Conexión GPRS exitosa
     }
@@ -35,14 +35,14 @@ int sim808_gprs_connect(void) {
 
 // Enviar los datos por GPRS
 void sim808_gprs_send_data(char *shipping_buffer) {
-
+    char response[256];
     // Iniciar la transmisión de datos
     sim808_send_command("AT+CIPSEND\r\n");
     sim808_send_command(shipping_buffer);
     uart_write_bytes(UART_NUM, "\x1A", 1);  // CTRL+Z para enviar
 
     // Verificar si el envío fue exitoso
-    sim808_read_response(NULL, 0);
+    sim808_read_response(response, sizeof(response));
     printf("Datos enviados: %s\n", shipping_buffer);
 }
 
