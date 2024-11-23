@@ -57,7 +57,7 @@ void start_gps_reset_timer(int reset_type) {
 void gps_state_machine_run(void) {
     switch (current_state) {
         case STATE_VERIFY_GPS:
-            printf("Estado: Verificación de GPS\n");
+            printf("ESTADO MÁQUINA GPS: Verificación de GPS------\n");
             gps_mode = sim808_gps_get_status();
             if (gps_mode==1) {
                 current_state = STATE_ACQUIRE_DATA;
@@ -84,7 +84,7 @@ void gps_state_machine_run(void) {
             break;
 
         case STATE_ACQUIRE_DATA:
-            printf("Estado: Adquisición de datos\n");
+            printf("ESTADO MÁQUINA GPS: Adquisición de datos------\n");
             if (sim808_get_gps_data(&gps_data)&&sim808_get_battery_status(&gps_data)){
                 printf("Datos adquiridos correctamente.\n");
                 current_state = STATE_STORE_DATA;
@@ -98,7 +98,7 @@ void gps_state_machine_run(void) {
             break;
 
         case STATE_STORE_DATA:
-            printf("Estado: Almacenamiento de datos\n");
+            printf("ESTADO MÁQUINA GPS: Almacenamiento de datos------\n");
             if (data_storage_save(&gps_data)) {
                 printf("Total de entradas a la memoria: %d\n",  data_storage_get_count());
                 printf("Datos almacenados con éxito. Reiniciando flujo.\n");
@@ -112,7 +112,7 @@ void gps_state_machine_run(void) {
             break;
 
         case STATE_WAIT_TIMER:
-           printf("Estado: Esperando reinicio del módulo GPS\n");
+           printf("ESTADO MÁQUINA GPS: Esperando reinicio del módulo GPS------\n");
            if (is_timer_finished()) {
               printf("Temporizador de reinicio completado.\n");
               current_state = STATE_VERIFY_GPS; // Regresa a verificar el GPS
@@ -122,12 +122,12 @@ void gps_state_machine_run(void) {
             break;
 
         case STATE_ERROR:
-            printf("Estado: ERROR. Revise el sistema.\n");
+            printf("ESTADO MÁQUINA GPS: ERROR. Revise el sistema.------\n");
             // Aquí se puede añadir lógica para reiniciar la máquina o notificar el error
             break;
 
         default:
-            printf("Estado desconocido. Reiniciando máquina de estados.\n");
+            printf("ESTADO MÁQUINA GPS: Desconocido. Reiniciando máquina de estados.------\n");
             current_state = STATE_VERIFY_GPS;
             break;
     }

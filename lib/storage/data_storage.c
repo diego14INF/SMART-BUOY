@@ -32,9 +32,6 @@ DataEntry* data_storage_get_all() {
 }
 
 int data_storage_get_count() {
-    size_t free_dram = heap_caps_get_free_size(MALLOC_CAP_8BIT);
-    size_t free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
-    printf("DRAM libre: %d bytes\n", free_dram);
-    printf("PSRAM libre: %d bytes\n", free_psram);    
+
     return storage_count;
 }

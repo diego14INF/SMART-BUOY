@@ -95,7 +95,6 @@ int sim808_gps_get_status() {
     sim808_send_command(GPS_STATUS_COMMAND);
     char response[128];
     sim808_read_response(response, sizeof(response));
-    printf("Estado actual del GPS: %s\n", response);
      // Verificar y mostrar el estado del GPS basado en la respuesta
     if (strstr(response, "Location 3D Fix") != NULL) {
         printf("GPS: Fijación de ubicación en 3D.\n");
