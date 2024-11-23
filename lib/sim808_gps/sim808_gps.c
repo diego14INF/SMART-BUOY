@@ -111,7 +111,7 @@ int sim808_gps_get_status() {
         return 3;
     } else {
         printf("GPS: Estado desconocido o sin respuesta.\n");
-        return 4;  //Parcheado mientras no cambie comando a enviar ya que parece que no lo soporta el firmware del sim808
+        return 1;  //Parcheado mientras no cambie comando a enviar ya que parece que no lo soporta el firmware del sim808
     }
 
 }
