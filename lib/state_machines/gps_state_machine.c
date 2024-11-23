@@ -48,8 +48,9 @@ void start_gps_reset_timer(int reset_type) {
             timer_duration = TIMER_HOT_RESET;
             break;
     }
-    init_timer(timer_duration);
     printf("Temporizador iniciado para reinicio %d: %d s.\n", reset_type, timer_duration);
+    init_timer(timer_duration);
+    
 }
 
 // Ejecuta la lógica de la máquina de estados
@@ -111,6 +112,7 @@ void gps_state_machine_run(void) {
             break;
 
         case STATE_WAIT_TIMER:
+           printf("Estado: Esperando reinicio del módulo GPS\n");
            if (is_timer_finished()) {
               printf("Temporizador de reinicio completado.\n");
               current_state = STATE_VERIFY_GPS; // Regresa a verificar el GPS

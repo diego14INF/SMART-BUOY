@@ -7,13 +7,21 @@ static volatile bool timer_finished = false; // Bandera para indicar que el temp
 bool timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *event_data, void *user_ctx) {
     // Marca el temporizador como finalizado
     timer_finished = true;
-    printf("¡Temporizador alcanzó 0!\n");
+    //printf("¡Temporizador alcanzó 0!\n");
 
     return false; // Indica que no se debe recargar automaticamente la alarma (auto-reload)
 }
 
 // Configura e inicia el temporizador
 void init_timer(int timer_interval_sec) {
+    
+     if (gptimer != NULL) {      
+        ESP_ERROR_CHECK(gptimer_stop(gptimer));// Detenemos el temporizador si ya existe
+        ESP_ERROR_CHECK(gptimer_disable(gptimer));// Deshabilitamos el temporizador para devolverlo a su estado inicial
+        ESP_ERROR_CHECK(gptimer_del_timer(gptimer));//y liberamos
+        gptimer = NULL;
+    }
+
     gptimer_config_t timer_config = {
         .clk_src = GPTIMER_CLK_SRC_APB, // Fuente de reloj
         .direction = GPTIMER_COUNT_DOWN, // Cuenta regresiva
@@ -25,22 +33,24 @@ void init_timer(int timer_interval_sec) {
 
     // Configura la alarma
     gptimer_alarm_config_t alarm_config = {
-        .reload_count = timer_interval_sec * 1000000, // Valor de recarga en microsegundos
+        //.reload_count = timer_interval_sec * 1000000, // Valor de recarga en microsegundos
         .alarm_count = 0,                            // Alarma al llegar a 0
         .flags.auto_reload_on_alarm = false           // Habilitar auto-reload
     };
+    
+    
+
     ESP_ERROR_CHECK(gptimer_set_alarm_action(gptimer, &alarm_config));
 
-    // Registra el callback
-    gptimer_event_callbacks_t cbs = {
-        .on_alarm = timer_callback // Callback cuando se activa la alarma
-    };
+    //  // Registra el callback
+     gptimer_event_callbacks_t cbs = {
+         .on_alarm = timer_callback // Callback cuando se activa la alarma
+     };
     ESP_ERROR_CHECK(gptimer_register_event_callbacks(gptimer, &cbs, NULL));
 
 
     // **Habilitar el temporizador**
     ESP_ERROR_CHECK(gptimer_enable(gptimer));
-
 
     // Inicia el temporizador
     ESP_ERROR_CHECK(gptimer_start(gptimer));
