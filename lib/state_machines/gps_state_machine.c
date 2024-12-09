@@ -124,6 +124,7 @@ void gps_state_machine_run(void) {
         case STATE_ERROR:
             printf("ESTADO MÁQUINA GPS: ERROR. Revise el sistema.------\n");
             // Aquí se puede añadir lógica para reiniciar la máquina o notificar el error
+            current_state = STATE_VERIFY_GPS;
             break;
 
         default:
