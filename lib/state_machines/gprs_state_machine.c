@@ -38,13 +38,20 @@ void gprs_state_machine_run(void) {
             int prepared_size = gsm_prepare_batch(buffer_salida, sizeof(buffer_salida), processed_index);
             if (prepared_size > 0) {
                 printf("Buffer preparado con %d bytes.\n", prepared_size);
-                current_state = ENVIAR_DATOS;
+                current_state = PREPARAR_RED;
             } else {
                 printf("Error al preparar el buffer.\n");
                 current_state = ERROR;
             }
             break;
-        
+
+        case PREPARAR_RED:
+            printf("ESTADO MÁQUINA GPRS: Preparación de red de datos.------\n");
+            if (sim808_config_sim()){
+                sim808_check_network_status();
+                current_state=PREPARAR_RED;
+            }
+            break;
 
         case ENVIAR_DATOS: 
             printf("ESTADO MÁQUINA GPRS: Envio de datos.------\n");

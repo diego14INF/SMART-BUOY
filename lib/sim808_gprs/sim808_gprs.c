@@ -14,15 +14,38 @@
 #define AT_TCP_CONNECT "AT+CIICR\r\n"       // Activar GPRS
 #define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" #define GPRS_PORT "\"\r\n" // Conectar a servidor TCP
 
+void sim808_control_energia(int a){
+    char response[128];
+    if(a==0){
+        //Desactivamos las funciones GPS
+        sim808_send_command("AT+CGNSPWR=0\r\n");
+        sim808_read_response(response, sizeof(response));
+
+        //Desactivamos la funcionalidad Bluetooth
+        sim808_send_command("AT+BTPOWER=0\r\n");
+        sim808_read_response(response, sizeof(response));
+
+        //Activamos el modo de bajo consumo (Power Saving Mode - PSM)
+        sim808_send_command("AT+CSCLK=1\r\n");
+        sim808_read_response(response, sizeof(response));
+
+        //Reducimos el intervalo de busqueda de la red GSM a intervalos menos frecuentes
+        sim808_send_command("AT+CFUN=4\r\n");
+        sim808_read_response(response, sizeof(response));
+    }
+
+}
+
 
 //Preparar tarjeta SIM
 int sim808_config_sim(void){
-    char response[64];
+    char response[254];
 
      // Paso 0.1: Verificar el estado de la tarjeta SIM
     sim808_send_command("AT+CPIN?\r\n");
     sim808_read_response(response, sizeof(response));
     if (!strstr(response, "+CPIN: READY")) {
+         sim808_control_energia(0); //Minimizamos el consumo de energia todo lo posible al buscar la red GPRS
         // Introducir el PIN si la tarjeta lo requiere
         sim808_send_command("AT+CPIN=\"8495\"\r\n"); 
         sim808_read_response(response, sizeof(response));
@@ -35,17 +58,17 @@ int sim808_config_sim(void){
 }
 
 void sim808_check_network_status(){
-     char response[64];
+     char response[254];
     
     // Comprobar la señal GSM
     sim808_send_command("AT+CSQ\r\n");
     sim808_read_response(response, sizeof(response));
     printf("Señal GSM: %s\n", response);
 
-    // Comprobar el estado del registro GSM
-    sim808_send_command("AT+CREG?\r\n");
-    sim808_read_response(response, sizeof(response));
-    printf("Estado del registro GSM: %s\n", response);
+    // // Comprobar el estado del registro GSM
+    // sim808_send_command("AT+CREG?\r\n");
+    // sim808_read_response(response, sizeof(response));
+    // printf("Estado del registro GSM: %s\n", response);
 
     // Comprobar si la SIM está lista
     sim808_send_command("AT+CPIN?\r\n");

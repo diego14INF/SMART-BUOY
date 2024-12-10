@@ -9,6 +9,7 @@
 typedef enum {
     ESPERA,
     PREPARAR_BUFFER,
+    PREPARAR_RED,
     ENVIAR_DATOS,
     CONFIRMAR_ENVIO,
     ERROR
