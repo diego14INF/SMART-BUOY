@@ -11,6 +11,7 @@
 #define GPRS_PORT 3000            // Puerto
 
 // Prototipos de funciones
+void sim808_control_energia(int a); //a=0 desactivar el resto de funciones que no sean gprs
 int sim808_config_sim(void);
 void sim808_check_network_status();
 int sim808_gprs_connect(void);

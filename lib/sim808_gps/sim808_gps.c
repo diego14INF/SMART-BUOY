@@ -66,10 +66,11 @@ int sim808_init() {
     uart_param_config(UART_NUM, &uart_config);
     uart_set_pin(UART_NUM, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     uart_driver_install(UART_NUM, BUF_SIZE * 2, 0, 0, NULL, 0);
+    char response[64];
 
     // Enciende el GPS
     sim808_send_command(GPS_PWR_ON_COMMAND);
-    char response[64];
+    
     sim808_read_response(response, sizeof(response));
 
     printf("Respuesta a la inicialización: %s\n", response);
