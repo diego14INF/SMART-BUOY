@@ -18,20 +18,20 @@ void sim808_control_energia(int a){
     char response[128];
     if(a==0){
         //Desactivamos las funciones GPS
-        sim808_send_command("AT+CGNSPWR=0\r\n");
-        sim808_read_response(response, sizeof(response));
+        // sim808_send_command("AT+CGNSPWR=0\r\n");
+        // sim808_read_response(response, sizeof(response));
 
         //Desactivamos la funcionalidad Bluetooth
         sim808_send_command("AT+BTPOWER=0\r\n");
         sim808_read_response(response, sizeof(response));
 
         //Activamos el modo de bajo consumo (Power Saving Mode - PSM)
-        sim808_send_command("AT+CSCLK=1\r\n");
-        sim808_read_response(response, sizeof(response));
+        // sim808_send_command("AT+CSCLK=0\r\n");
+        // sim808_read_response(response, sizeof(response));
 
         //Reducimos el intervalo de busqueda de la red GSM a intervalos menos frecuentes
-        sim808_send_command("AT+CFUN=4\r\n");
-        sim808_read_response(response, sizeof(response));
+        // sim808_send_command("AT+CFUN=1\r\n");
+        // sim808_read_response(response, sizeof(response));
     }
 
 }
@@ -60,15 +60,11 @@ int sim808_config_sim(void){
 void sim808_check_network_status(){
      char response[254];
     
-    // Comprobar la señal GSM
-    sim808_send_command("AT+CSQ\r\n");
-    sim808_read_response(response, sizeof(response));
-    printf("Señal GSM: %s\n", response);
 
     // // Comprobar el estado del registro GSM
-    // sim808_send_command("AT+CREG?\r\n");
-    // sim808_read_response(response, sizeof(response));
-    // printf("Estado del registro GSM: %s\n", response);
+    sim808_send_command("AT+CREG?\r\n");
+    sim808_read_response(response, sizeof(response));
+    printf("Estado del registro GSM: %s\n", response);
 
     // Comprobar si la SIM está lista
     sim808_send_command("AT+CPIN?\r\n");
@@ -79,6 +75,15 @@ void sim808_check_network_status(){
     sim808_send_command("AT+CFUN?\r\n");
     sim808_read_response(response, sizeof(response));
     printf("Estado del módulo: %s\n", response);
+    // if(strstr(response, "4")){
+    //     sim808_send_command("AT+CFUN=1\r\n");
+    //     sim808_read_response(response, sizeof(response));
+    // }
+
+     // Comprobar la señal GSM
+    sim808_send_command("AT+CSQ\r\n");
+    sim808_read_response(response, sizeof(response));
+    printf("Señal GSM: %s\n", response);
 }
 
 // Conectar a la red GPRS
