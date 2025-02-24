@@ -8,21 +8,25 @@
 #include "timers.h"
 #include "gprs_state_machine.h"
 #include "gsm_data.h"
+#include "i2c_com.h"
 
 void app_main(void) {
 
     //Inicialización de máquinas de estado:
     gps_state_machine_init();
     gprs_state_machine_init();
+    i2c_master_init();
 
     // Inicialización del módulo GPS SIM808
     printf("Iniciando programa con SIM808...\n");
     if (sim808_init()==0){
         printf("Error al inicializar el GPS del SIM808.\n");
     }
-  
+
+    
     // Ciclo principal
     while (1) {
+        ina219_log_data();
         //Corriendo máquina de estados del GPS
         gps_state_machine_run();
         

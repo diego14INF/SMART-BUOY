@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "driver/i2c.h"
+#include "driver/i2c_master.h"
 
 #define I2C_MASTER_SCL_IO    6  // Pin SCL
 #define I2C_MASTER_SDA_IO    7  // Pin SDA
@@ -17,7 +18,7 @@
 #define INA219_REG_CURRENT       0x04
 
 esp_err_t i2c_master_init();
-int16_t ina219_read_register(uint8_t reg);
+esp_err_t ina219_read_register(uint8_t reg, uint16_t *data);
 float ina219_get_shunt_voltage();
 float ina219_get_bus_voltage();
 float ina219_get_current();
