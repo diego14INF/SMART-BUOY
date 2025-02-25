@@ -17,6 +17,9 @@ void app_main(void) {
     gprs_state_machine_init();
     i2c_master_init();
 
+    ina219_calibrate(0.02,3.2);
+
+
     // Inicialización del módulo GPS SIM808
     printf("Iniciando programa con SIM808...\n");
     if (sim808_init()==0){
@@ -34,6 +37,7 @@ void app_main(void) {
         gprs_state_machine_run();
 
         // Retraso de 1 segundo
-        esp_rom_delay_us(2000000);   // 1000 ms = 1000000 us
+        //esp_rom_delay_us(3000000);   // 1000 ms = 1000000 us
+        vTaskDelay(pdMS_TO_TICKS(5000));  // 2 segundos
     }
 }

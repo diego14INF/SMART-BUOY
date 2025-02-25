@@ -16,6 +16,7 @@
 #define INA219_REG_BUS_VOLTAGE   0x02
 #define INA219_REG_POWER       0x03
 #define INA219_REG_CURRENT       0x04
+#define INA219_REG_CALIBRATION 0X05
 
 esp_err_t i2c_master_init();
 esp_err_t ina219_read_register(uint8_t reg, uint16_t *data);
@@ -24,5 +25,6 @@ float ina219_get_bus_voltage();
 float ina219_get_current();
 float ina219_get_power();
 void ina219_log_data();
+esp_err_t ina219_calibrate(float shunt_value, float max_expected_current);
 
 #endif

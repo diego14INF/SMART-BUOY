@@ -49,6 +49,40 @@ esp_err_t i2c_master_init() {
     return ret;
 }
 
+esp_err_t ina219_calibrate(float shunt_value, float max_expected_current) {
+  uint16_t calibration_value;
+  float current_lsb;
+  float power_lsb;
+
+  // Calcular el valor de calibración
+  current_lsb = max_expected_current / 32768.0f; // 32768 = 2^15
+  power_lsb = 20 * current_lsb; // power_lsb = current_lsb * 20
+
+  calibration_value = (uint16_t)(0.04096f / (current_lsb * shunt_value));
+
+  // Escribir el valor de calibración en el registro de calibración
+  i2c_cmd_handle_t cmd = i2c_cmd_link_create();
+  esp_err_t ret;
+
+  i2c_master_start(cmd);
+  i2c_master_write_byte(cmd, (INA219_ADDRESS << 1) | I2C_MASTER_WRITE, true);
+  i2c_master_write_byte(cmd, INA219_REG_CALIBRATION, true);
+  i2c_master_write_byte(cmd, (calibration_value >> 8) & 0xFF, true); // MSB
+  i2c_master_write_byte(cmd, calibration_value & 0xFF, true); // LSB
+  i2c_master_stop(cmd);
+
+  ret = i2c_master_cmd_begin(I2C_MASTER_NUM, cmd, pdMS_TO_TICKS(I2C_TIMEOUT_MS));
+  i2c_cmd_link_delete(cmd);
+
+  if (ret != ESP_OK) {
+      ESP_LOGE(TAG, "Error writing calibration register");
+  } else {
+      ESP_LOGI(TAG, "INA219 calibrated successfully");
+  }
+
+  return ret;
+}
+
 
 float ina219_get_shunt_voltage() {
   uint16_t raw = 0;
