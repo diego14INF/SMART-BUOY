@@ -47,15 +47,28 @@ void gprs_state_machine_run(void) {
 
         case PREPARAR_RED:
             printf("ESTADO MÁQUINA GPRS: Preparación de red de datos.------\n");
-            if (sim808_config_sim()){
-                sim808_check_network_status();
+            if (sim808_config_sim()){      
+                
+                if(sim808_gprs_connect()){
+                     current_state=COMPROBACION_RED;
+                }
+               
+            }
+            break;
+
+        case COMPROBACION_RED:
+            printf("ESTADO MÁQUINA GPRS: Comprobando la red de datos.------\n");
+            if (sim808_check_network_status()){
+                current_state=ENVIAR_DATOS;
+            }else{
                 current_state=PREPARAR_RED;
             }
+
             break;
 
         case ENVIAR_DATOS: 
             printf("ESTADO MÁQUINA GPRS: Envio de datos.------\n");
-            if (sim808_gprs_connect()) {
+            if (sim808_check_network_status()) {  //Provisional
                 sim808_gprs_send_data(&buffer_salida);
                 current_state = CONFIRMAR_ENVIO;
             } else {

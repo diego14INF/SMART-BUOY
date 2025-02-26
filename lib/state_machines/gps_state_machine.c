@@ -10,17 +10,19 @@
 #define GPS_COLD_RESET 2
 #define GPS_WARM_RESET 1
 #define GPS_HOT_RESET 0
+#define GPS_WAIT 4
 
 // Tiempos de espera en milisegundos para cada tipo de reinicio
 #define TIMER_COLD_RESET 5
 #define TIMER_WARM_RESET 3
 #define TIMER_HOT_RESET 2
+#define TIMER_TEN_SECONDS 10
 
 // Estado actual y variables de control
 static GPSState current_state = STATE_VERIFY_GPS;
 static int gps_retry_count = 0;
 static int acquisition_retry_count = 0;
-static int gps_mode = 0;
+int gps_mode = 0;
 int reset_type;
 GPSData gps_data;
 
@@ -46,6 +48,9 @@ void start_gps_reset_timer(int reset_type) {
             break;
         case GPS_HOT_RESET:
             timer_duration = TIMER_HOT_RESET;
+            break;
+        case GPS_WAIT:
+            timer_duration = TIMER_TEN_SECONDS;
             break;
     }
     printf("Temporizador iniciado para reinicio %d: %d s.\n", reset_type, timer_duration);
@@ -78,7 +83,7 @@ void gps_state_machine_run(void) {
                     current_state=STATE_WAIT_TIMER;
                 } else {
                     printf("Error crítico: no se pudo verificar el GPS tras %d intentos.\n", MAX_GPS_RETRIES);
-                    current_state = STATE_ACQUIRE_DATA; //Ahora digo que pase a adquisicion de datos porque no tengo respuesta buena del estado del gps
+                    current_state = STATE_ERROR; //Ahora digo que pase a adquisicion de datos porque no tengo respuesta buena del estado del gps
                 }
             }
             break;
@@ -101,8 +106,9 @@ void gps_state_machine_run(void) {
             printf("ESTADO MÁQUINA GPS: Almacenamiento de datos------\n");
             if (data_storage_save(&gps_data)) {
                 printf("Total de entradas a la memoria: %d\n",  data_storage_get_count());
-                printf("Datos almacenados con éxito. Reiniciando flujo.\n");
-                current_state = STATE_VERIFY_GPS; // Reinicia el flujo
+                printf("Datos almacenados con éxito. Espera de 10 segundos....\n");
+                start_gps_reset_timer(GPS_WAIT); // Inicia el temporizador
+                current_state = STATE_WAIT_TIMER; // Reinicia el flujo
                 gps_retry_count = 0;
                 acquisition_retry_count = 0;
             } else {
@@ -112,14 +118,15 @@ void gps_state_machine_run(void) {
             break;
 
         case STATE_WAIT_TIMER:
-           printf("ESTADO MÁQUINA GPS: Esperando reinicio del módulo GPS------\n");
+           printf("ESTADO MÁQUINA GPS: En espera módulo GPS------\n");
            if (is_timer_finished()) {
-              printf("Temporizador de reinicio completado.\n");
-              current_state = STATE_VERIFY_GPS; // Regresa a verificar el GPS
+              printf("----Temporizador completado.----\n");
+              current_state = STATE_ACQUIRE_DATA; // Regresa a verificar el GPS(Ahora puse ir al estado de recogida de datos porque no funciona el comando de verificar estado)
             } else {
                vTaskDelay(10 / portTICK_PERIOD_MS); // Da tiempo al sistema operativo
             }
             break;
+        
 
         case STATE_ERROR:
             printf("ESTADO MÁQUINA GPS: ERROR. Revise el sistema.------\n");

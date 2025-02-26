@@ -14,38 +14,18 @@
 #define AT_TCP_CONNECT "AT+CIICR\r\n"       // Activar GPRS
 #define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" #define GPRS_PORT "\"\r\n" // Conectar a servidor TCP
 
-void sim808_control_energia(int a){
-    char response[128];
-    if(a==0){
-        //Desactivamos las funciones GPS
-        sim808_send_command("AT+CGNSPWR=0\r\n");
-        sim808_read_response(response, sizeof(response));
-
-        //Desactivamos la funcionalidad Bluetooth
-        sim808_send_command("AT+BTPOWER=0\r\n");
-        sim808_read_response(response, sizeof(response));
-
-        //Activamos el modo de bajo consumo (Power Saving Mode - PSM)
-        sim808_send_command("AT+CSCLK=1\r\n");
-        sim808_read_response(response, sizeof(response));
-
-        //Reducimos el intervalo de busqueda de la red GSM a intervalos menos frecuentes
-        sim808_send_command("AT+CFUN=4\r\n");
-        sim808_read_response(response, sizeof(response));
-    }
-
-}
-
 
 //Preparar tarjeta SIM
 int sim808_config_sim(void){
     char response[254];
+    //Paso 0.0: Activar todas las funcionalidades
+    sim808_send_command("AT+CFUN=1\r\n");
+    sim808_read_response(response, sizeof(response));
 
      // Paso 0.1: Verificar el estado de la tarjeta SIM
     sim808_send_command("AT+CPIN?\r\n");
     sim808_read_response(response, sizeof(response));
     if (!strstr(response, "+CPIN: READY")) {
-         sim808_control_energia(0); //Minimizamos el consumo de energia todo lo posible al buscar la red GPRS
         // Introducir el PIN si la tarjeta lo requiere
         sim808_send_command("AT+CPIN=\"8495\"\r\n"); 
         sim808_read_response(response, sizeof(response));
@@ -57,33 +37,74 @@ int sim808_config_sim(void){
     return 1;
 }
 
-void sim808_check_network_status(){
-     char response[254];
-    
-    // Comprobar la señal GSM
+int sim808_check_network_status(){
+    char response[254];
+    int signal_strength = 0;
+    int registration_status = 0;
+    int network_ok = 0;
+    int cfun_ok = 0;
+    int cfun_status=0;
+
+    printf("\n----------------------------------------\n");
+    printf("| Parámetro     | Valor               |\n");
+    printf("----------------------------------------\n");
+
+    // Comprobar la señal GSM (AT+CSQ)
     sim808_send_command("AT+CSQ\r\n");
     sim808_read_response(response, sizeof(response));
-    printf("Señal GSM: %s\n", response);
+    printf("| Señal GSM     | %s\n", response);
 
-    // // Comprobar el estado del registro GSM
-    // sim808_send_command("AT+CREG?\r\n");
-    // sim808_read_response(response, sizeof(response));
-    // printf("Estado del registro GSM: %s\n", response);
+    // Extraer el valor de la señal GSM
+    if (sscanf(response, "+CSQ: %d,", &signal_strength) == 1) {
+        if (signal_strength >= 10 && signal_strength <= 30) {
+            network_ok++;
+        }
+    }
 
-    // Comprobar si la SIM está lista
+    // Comprobar el estado del registro GSM (AT+CREG?)
+    sim808_send_command("AT+CREG?\r\n");
+    sim808_read_response(response, sizeof(response));
+    printf("| Registro GSM  | %s\n", response);
+
+    // Extraer el estado de registro
+    if (sscanf(response, "+CREG: %*d,%d", &registration_status) == 1) {
+        if (registration_status == 1 || registration_status == 5) {
+            network_ok++;
+        }
+    }
+
+    // Comprobar si la SIM está lista (AT+CPIN?)
     sim808_send_command("AT+CPIN?\r\n");
     sim808_read_response(response, sizeof(response));
-    printf("Estado de la SIM: %s\n", response);
+    printf("| Estado SIM    | %s\n", response);
 
-    // Asegurarse de que el módulo está en modo funcional completo
+    // Verificar si la respuesta contiene "READY"
+    if (strstr(response, "READY") != NULL) {
+        network_ok++;
+    }
+
+    // Asegurarse de que el módulo está en modo funcional completo (AT+CFUN?)
     sim808_send_command("AT+CFUN?\r\n");
     sim808_read_response(response, sizeof(response));
     printf("Estado del módulo: %s\n", response);
+
+   // Extraer el estado de CFUN
+   if (sscanf(response, "+CFUN: %d", &cfun_status) == 1) {
+     if (cfun_status == 1) {
+        cfun_ok = 1;
+      }
+    }
+ 
+    printf("----------------------------------------\n");
+
+     // Retornar 1 solo si todas las condiciones se cumplen
+     return (network_ok == 3 && cfun_ok == 1) ? 1 : 0;
 }
+
 
 // Conectar a la red GPRS
 int sim808_gprs_connect(void) {
-    char response[64];
+    char response[128];
     // Enviar comandos para activar GPRS
 
     // Paso 1: Conectar a GPRS

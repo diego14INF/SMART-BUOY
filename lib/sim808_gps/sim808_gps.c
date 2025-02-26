@@ -92,27 +92,33 @@ void sim808_gps_reset_mode(int mode) {
 }
 
 int sim808_gps_get_status() {
-    sim808_send_command(GPS_STATUS_COMMAND);
+    sim808_send_command(GPS_INF_COMMAND);
     char response[128];
     sim808_read_response(response, sizeof(response));
-     // Verificar y mostrar el estado del GPS basado en la respuesta
-    if (strstr(response, "Location 3D Fix") != NULL) {
-        printf("GPS: Fijación de ubicación en 3D.\n");
-        return 1;
-    } else if (strstr(response, "Location 2D Fix") != NULL) {
-        printf("GPS: Fijación de ubicación en 2D.\n");
-        return 1;
-    } else if (strstr(response, "Location Not Fix") != NULL) {
-        printf("GPS: Ubicación conocida, pero sin fijación.\n");
-        return 2;
-    } else if (strstr(response, "Location Unknown") != NULL) {
-        printf("GPS: Ubicación desconocida.\n");
-        return 3;
-    } else {
-        printf("GPS: Estado desconocido o sin respuesta.\n");
-        return 1;  //Parcheado mientras no cambie comando a enviar ya que parece que no lo soporta el firmware del sim808
+    int gps_status = -1; // Variable para almacenar el estado del GPS
+    
+    // Extraer el segundo campo de la respuesta
+    if (sscanf(strstr(response, "+CGNSINF: "), "+CGNSINF: %*d,%d", &gps_status) == 1) {
+        switch (gps_status) {
+            case 1:
+                printf("GPS: Fijación de ubicación en 3D.\n");
+                return 1;
+            case 2:
+                printf("GPS: Fijación de ubicación en 2D.\n");
+                return 1;
+            case 3:
+                printf("GPS: Ubicación conocida, pero sin fijación.\n");
+                return 2;
+            case 0:
+                printf("GPS: Ubicación desconocida.\n");
+                return 3;
+            // default:
+            //     printf("GPS: Estado desconocido o sin respuesta.\n");
+            //     return 2; 
+        }
+ 
     }
-
+ return 0;
 }
 
 // Obtiene los datos GPS
