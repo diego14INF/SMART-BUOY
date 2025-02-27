@@ -6,13 +6,6 @@
 #include "driver/uart.h"
 
 #define UART_NUM UART_NUM_1
-// Comandos AT para conexión GPRS
-#define AT_GPRS_INIT "AT+CGATT=1\r\n"       // Conectar a la red GPRS
-#define AT_GPRS_CTRL_SIGNAL "AT+CSQ\r\n"    //Para comprobar valores de la señal gsm, los valores deben entre 10 y 30 son buenos
-#define AT_GPRS_APN "AT+CGDCONT=1,\"IP\",\"" APN "\"\r\n" // Configuración APN
-#define AT_GPRS_STATUS "AT+CGACT?\r\n"      // Comprobar estado de la conexión GPRS
-#define AT_TCP_CONNECT "AT+CIICR\r\n"       // Activar GPRS
-#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" #define GPRS_PORT "\"\r\n" // Conectar a servidor TCP
 
 
 //Preparar tarjeta SIM
@@ -101,57 +94,77 @@ int sim808_check_network_status(){
      return (network_ok == 3 && cfun_ok == 1) ? 1 : 0;
 }
 
-
-// Conectar a la red GPRS
-int sim808_gprs_connect(void) {
+// Paso 1: Conectar a GPRS
+int sim808_gprs_connect_init(void) {
     char response[128];
-    // Enviar comandos para activar GPRS
-
-    // Paso 1: Conectar a GPRS
     sim808_send_command(AT_GPRS_INIT);
-    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-      if (!strstr(response, "OK")) {
+    sim808_wait_for_response(response, sizeof(response), 10000);
+    if (!strstr(response, "OK")) {
         printf("*******Error: No se pudo conectar a la red GPRS.*******\n");
         return 0;
     }
+    return 1;
+}
 
-    // Paso 2: Configurar APN
+// Paso 2: Configurar APN
+int sim808_gprs_connect_apn(void) {
+    char response[128];
     sim808_send_command(AT_GPRS_APN);
-    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-       if (!strstr(response, "OK")) {
+    sim808_wait_for_response(response, sizeof(response), 10000);
+    if (!strstr(response, "OK")) {
         printf("*******Error: Configuración APN fallida.*******\n");
         return 0;
     }
+    return 1;
+}
 
-    
-    // Paso 3: Activar conexión de datos
+// Paso 3: Activar conexión de datos
+int sim808_gprs_activate_data(void) {
+    char response[128];
     sim808_send_command("AT+CGACT=1,1\r\n");
-    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+    sim808_wait_for_response(response, sizeof(response), 10000);
     if (!strstr(response, "OK")) {
         printf("*******Error: Activación de conexión de datos fallida.*******\n");
         return 0;
     }
+    return 1;
+}
 
-
-    // Paso 4: Establecer enlace PPP
+// Paso 4: Establecer enlace PPP
+int sim808_gprs_establish_ppp(void) {
+    char response[128];
     sim808_send_command("AT+CIICR\r\n");
-    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+    sim808_wait_for_response(response, sizeof(response), 10000);
     if (!strstr(response, "OK")) {
         printf("*******Error: Enlace PPP fallido.*******\n");
         return 0;
     }
+    return 1;
+}
 
-    // Paso 5: Obtener dirección IP
+// Paso 5: Obtener dirección IP
+int sim808_gprs_get_ip(void) {
+    char response[128];
     sim808_send_command("AT+CIFSR\r\n");
-    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+    sim808_wait_for_response(response, sizeof(response), 10000);
     if (strstr(response, "ERROR")) {
         printf("*******Error: No se pudo obtener dirección IP.*******\n");
         return 0;
     }
+    printf("Dirección IP obtenida: %s\n", response); // Imprimir IP
+    return 1;
+}
 
-    //sim808_send_command(AT_TCP_CONNECT);
-
-    printf("Conexión GPRS establecida correctamente. IP: %s\n", response);
+// Paso 6: Conexión TCP
+int sim808_gprs_tcp_connect(void) {
+    char response[128];
+    sim808_send_command(AT_TCP_CONNECT);
+    sim808_wait_for_response(response, sizeof(response), 10000);
+    if (strstr(response, "ERROR")) {
+        printf("*******Error: No se pudo realizar la conexión TCP.*******\n");
+        return 0;
+    }
+    printf("Conexion TCP: %s\n", response); // Tengo que ver con que responde el modulo
     return 1;
 }
 

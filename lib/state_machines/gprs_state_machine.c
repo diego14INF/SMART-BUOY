@@ -9,6 +9,8 @@
 #define MEMORY_SIZE 100
 
 static State current_state;
+static GPRSConnectionSubstate gprs_connection_substate;
+
 static int retry_count;
 static int processed_index; // Índice del último registro procesado
 static char buffer_salida[2760];
@@ -18,6 +20,7 @@ static bool last_send_successful; // Indica si el último envío fue exitoso
 // Inicializa la máquina de estados
 void gprs_state_machine_init(void) {
 static State current_state = ESPERA;
+static GPRSConnectionSubstate gprs_connection_substate = GPRS_SUBSTATE_SIM;
 static int retry_count = 0;
 static int processed_index = 0; // Índice del último registro procesado
 static bool last_send_successful = true; // Indica si el último envío fue exitoso
@@ -46,15 +49,71 @@ void gprs_state_machine_run(void) {
             break;
 
         case PREPARAR_RED:
-            printf("ESTADO MÁQUINA GPRS: Preparación de red de datos.------\n");
-            if (sim808_config_sim()){      
-                
-                if(sim808_gprs_connect()){
-                     current_state=COMPROBACION_RED;
+        printf("ESTADO MÁQUINA GPRS: Preparación de red de datos.------\n");
+         switch (gprs_connection_substate) {
+            case GPRS_SUBSTATE_SIM:
+                if (sim808_config_sim()) {
+                    gprs_connection_substate = GPRS_SUBSTATE_APN;
+                } else {
+                    gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                 }
-               
-            }
-            break;
+                break;
+
+            case GPRS_SUBSTATE_INIT:
+
+              if (sim808_gprs_connect_init()) {
+                  gprs_connection_substate = GPRS_SUBSTATE_APN;
+              } else {
+                  gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+              }
+              break;
+
+            case GPRS_SUBSTATE_APN:
+                if (sim808_gprs_connect_apn()) { // Implementa esta función
+                    gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
+                } else {
+                    gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+                }
+                break;
+            case GPRS_SUBSTATE_ACTIVATE:
+                if (sim808_gprs_activate_data()) { // Implementa esta función
+                    gprs_connection_substate = GPRS_SUBSTATE_PPP;
+                } else {
+                    gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+                }
+                break;
+            case GPRS_SUBSTATE_PPP:
+                if (sim808_gprs_establish_ppp()) { // Implementa esta función
+                    gprs_connection_substate = GPRS_SUBSTATE_IP;
+                } else {
+                    gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+                }
+                break;
+            case GPRS_SUBSTATE_IP:
+                if (sim808_gprs_get_ip()) { // Implementa esta función
+                    gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
+                } else {
+                    gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+                }
+                break;
+            case GPRS_SUBSTATE_TCP_CONNECT:
+                if (sim808_gprs_tcp_connect()) {
+                    gprs_connection_substate = GPRS_SUBSTATE_CONNECTED;
+                } else {
+                    gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+                }
+                break;
+            case GPRS_SUBSTATE_ERROR:
+                printf("Error en la conexión GPRS.\n");
+                gprs_connection_substate = GPRS_SUBSTATE_INIT; // Reiniciar subestado
+                current_state = ERROR; // Transición al estado de error principal
+                break;
+            case GPRS_SUBSTATE_CONNECTED:
+                current_state = COMPROBACION_RED; // Transición al siguiente estado
+                gprs_connection_substate = GPRS_SUBSTATE_INIT;
+                break;
+        }
+        break;
 
         case COMPROBACION_RED:
             printf("ESTADO MÁQUINA GPRS: Comprobando la red de datos.------\n");

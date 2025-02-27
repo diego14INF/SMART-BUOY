@@ -102,7 +102,6 @@ void sim808_send_command(const char *command) {
 //     size_t total_bytes_read = 0; // Total de bytes leídos
 //     int bytes_read = 0;          // Bytes leídos en cada iteración
 //     TickType_t start_time = xTaskGetTickCount(); // Tiempo de inicio
-
 //     // Leer datos mientras no se excedan los 3 segundos y haya espacio en el buffer
 //     while ((xTaskGetTickCount() - start_time) < (5000 / portTICK_PERIOD_MS)) {
 //         if (total_bytes_read < buffer_size - 1) {
@@ -115,10 +114,8 @@ void sim808_send_command(const char *command) {
 //             break; // Salir si el buffer está lleno
 //         }
 //     }
-
 //     // Asegurarse de terminar el buffer como cadena
 //     buffer[total_bytes_read] = '\0';
-
 //     // Verificar si se leyeron datos
 //     if (total_bytes_read > 0) {
 //         printf("Respuesta del SIM808: %s\n", buffer);

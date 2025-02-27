@@ -41,8 +41,6 @@ void app_main(void) {
         //Corriendo máquina de estados del módulo GSM/GPRS
         gprs_state_machine_run();
 
-        // Retraso de 1 segundo
-        //esp_rom_delay_us(3000000);   // 1000 ms = 1000000 us
-        vTaskDelay(pdMS_TO_TICKS(5000));  // 2 segundos
+        vTaskDelay(pdMS_TO_TICKS(5000));  // 5 segundos
     }
 }
