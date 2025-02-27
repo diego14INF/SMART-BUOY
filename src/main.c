@@ -9,10 +9,15 @@
 #include "gprs_state_machine.h"
 #include "gsm_data.h"
 #include "i2c_com.h"
+#include "driver/uart.h"
+
+QueueHandle_t uart_queue; // Declaración global
+
 
 void app_main(void) {
 
     //Inicialización de máquinas de estado:
+    
     gps_state_machine_init();
     gprs_state_machine_init();
     i2c_master_init();

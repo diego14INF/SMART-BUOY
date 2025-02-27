@@ -20,15 +20,15 @@ int sim808_config_sim(void){
     char response[254];
     //Paso 0.0: Activar todas las funcionalidades
     sim808_send_command("AT+CFUN=1\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
 
      // Paso 0.1: Verificar el estado de la tarjeta SIM
     sim808_send_command("AT+CPIN?\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     if (!strstr(response, "+CPIN: READY")) {
         // Introducir el PIN si la tarjeta lo requiere
         sim808_send_command("AT+CPIN=\"8495\"\r\n"); 
-        sim808_read_response(response, sizeof(response));
+        sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
         if (!strstr(response, "OK")) {
             printf("*******Error: No se pudo desbloquear la tarjeta SIM.*******\n");
             return 0;
@@ -51,7 +51,7 @@ int sim808_check_network_status(){
 
     // Comprobar la señal GSM (AT+CSQ)
     sim808_send_command("AT+CSQ\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     printf("| Señal GSM     | %s\n", response);
 
     // Extraer el valor de la señal GSM
@@ -63,7 +63,7 @@ int sim808_check_network_status(){
 
     // Comprobar el estado del registro GSM (AT+CREG?)
     sim808_send_command("AT+CREG?\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     printf("| Registro GSM  | %s\n", response);
 
     // Extraer el estado de registro
@@ -75,7 +75,7 @@ int sim808_check_network_status(){
 
     // Comprobar si la SIM está lista (AT+CPIN?)
     sim808_send_command("AT+CPIN?\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     printf("| Estado SIM    | %s\n", response);
 
     // Verificar si la respuesta contiene "READY"
@@ -85,7 +85,7 @@ int sim808_check_network_status(){
 
     // Asegurarse de que el módulo está en modo funcional completo (AT+CFUN?)
     sim808_send_command("AT+CFUN?\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     printf("Estado del módulo: %s\n", response);
 
    // Extraer el estado de CFUN
@@ -109,7 +109,7 @@ int sim808_gprs_connect(void) {
 
     // Paso 1: Conectar a GPRS
     sim808_send_command(AT_GPRS_INIT);
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
       if (!strstr(response, "OK")) {
         printf("*******Error: No se pudo conectar a la red GPRS.*******\n");
         return 0;
@@ -117,7 +117,7 @@ int sim808_gprs_connect(void) {
 
     // Paso 2: Configurar APN
     sim808_send_command(AT_GPRS_APN);
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
        if (!strstr(response, "OK")) {
         printf("*******Error: Configuración APN fallida.*******\n");
         return 0;
@@ -126,7 +126,7 @@ int sim808_gprs_connect(void) {
     
     // Paso 3: Activar conexión de datos
     sim808_send_command("AT+CGACT=1,1\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     if (!strstr(response, "OK")) {
         printf("*******Error: Activación de conexión de datos fallida.*******\n");
         return 0;
@@ -135,7 +135,7 @@ int sim808_gprs_connect(void) {
 
     // Paso 4: Establecer enlace PPP
     sim808_send_command("AT+CIICR\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     if (!strstr(response, "OK")) {
         printf("*******Error: Enlace PPP fallido.*******\n");
         return 0;
@@ -143,7 +143,7 @@ int sim808_gprs_connect(void) {
 
     // Paso 5: Obtener dirección IP
     sim808_send_command("AT+CIFSR\r\n");
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     if (strstr(response, "ERROR")) {
         printf("*******Error: No se pudo obtener dirección IP.*******\n");
         return 0;
@@ -177,13 +177,14 @@ void sim808_gprs_send_data(char *shipping_buffer) {
     uart_write_bytes(UART_NUM, "\x1A", 1);  // CTRL+Z para enviar
 
     // Verificar si el envío fue exitoso
-    sim808_read_response(response, sizeof(response));
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     printf("Datos enviados: %s\n", shipping_buffer);
 }
 
 // Desconectar la sesión GPRS
 int sim808_gprs_disconnect(void) {
+    char response[256];
     sim808_send_command("AT+CIPSHUT\r\n");  // Cerrar la conexión GPRS
-    sim808_read_response(NULL, 0);
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
     return 1;
 }

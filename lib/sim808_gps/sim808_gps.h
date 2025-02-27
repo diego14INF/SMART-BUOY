@@ -17,7 +17,9 @@ typedef struct {
 //Funciones para la comunicación UART
 void sim808_send_command(const char *command);
 
-void sim808_read_response(char *buffer, size_t buffer_size);
+//void sim808_read_response(char *buffer, size_t buffer_size);
+
+int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_ms);
 
 // Funciones para inicializar y obtener datos del SIM808
 // Inicializa el módulo SIM808
