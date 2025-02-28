@@ -10,13 +10,16 @@
 #define GPRS_SERVER "https://gps-data-server.glitch.me"  // IP o URL del servidor al que enviar los datos
 #define GPRS_PORT 3000            // Puerto
 
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
 // Comandos AT para conexión GPRS
 #define AT_GPRS_INIT "AT+CGATT=1\r\n"       // Conectar a la red GPRS
 #define AT_GPRS_CTRL_SIGNAL "AT+CSQ\r\n"    //Para comprobar valores de la señal gsm, los valores deben entre 10 y 30 son buenos
 #define AT_GPRS_APN "AT+CGDCONT=1,\"IP\",\"" APN "\"\r\n" // Configuración APN
 #define AT_GPRS_STATUS "AT+CGACT?\r\n"      // Comprobar estado de la conexión GPRS
-#define AT_TCP_CONNECT "AT+CIICR\r\n"       // Activar GPRS
-#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" #define GPRS_PORT "\"\r\n" // Conectar a servidor TCP
+#define AT_PDP_CONNECT "AT+CGACT=1,1\r\n"       // Activar contexto PDP
+#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(GPRS_PORT) "\"\r\n" // Conectar a servidor TCP
 
 
 // Funciones de configuracion

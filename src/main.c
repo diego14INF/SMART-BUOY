@@ -16,6 +16,11 @@ QueueHandle_t uart_queue; // Declaración global
 
 void app_main(void) {
 
+    // Inicialización del módulo GPS SIM808
+    printf("Iniciando programa con SIM808...\n");
+    if (sim808_init()==0){
+        printf("Error al inicializar el GPS del SIM808.\n");
+    }
     //Inicialización de máquinas de estado:
     
     gps_state_machine_init();
@@ -23,13 +28,6 @@ void app_main(void) {
     i2c_master_init();
 
     ina219_calibrate(0.02,3.2);
-
-
-    // Inicialización del módulo GPS SIM808
-    printf("Iniciando programa con SIM808...\n");
-    if (sim808_init()==0){
-        printf("Error al inicializar el GPS del SIM808.\n");
-    }
 
     
     // Ciclo principal

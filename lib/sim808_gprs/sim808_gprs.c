@@ -12,8 +12,7 @@ int sim808_full_reset(void) {
     // Enviar el comando AT+CFUN=1,1 para reiniciar el módulo
     sim808_send_command("AT+CFUN=1,1\r\n");
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-    if (strstr(response, "OK") != NULL) {
-        
+    if (strstr(response, "OK") != NULL) { 
         return 1;  // Reinicio exitoso
     } else {
         return 0;  // Error en el reinicio
@@ -138,7 +137,7 @@ int sim808_config_sim(void){
     return 1;
 }
 
-// Paso 1: Conectar a GPRS
+//Paso 1: Conectar a GPRS//nO SIRVE DE NADA ESTO CON ESE COMANDO, ES INCOMPLETO
 int sim808_gprs_connect_init(void) {
     char response[128];
     sim808_send_command(AT_GPRS_INIT);
@@ -177,7 +176,7 @@ int sim808_gprs_activate_data(void) {
 // Paso 4: Establecer enlace PPP
 int sim808_gprs_establish_ppp(void) {
     char response[128];
-    sim808_send_command("AT+CIICR\r\n");
+    sim808_send_command(AT_PDP_CONNECT);
     sim808_wait_for_response(response, sizeof(response), 10000);
     if (!strstr(response, "OK")) {
         printf("*******Error: Enlace PPP fallido.*******\n");
@@ -202,7 +201,7 @@ int sim808_gprs_get_ip(void) {
 // Paso 6: Conexión TCP
 int sim808_gprs_tcp_connect(void) {
     char response[128];
-    sim808_send_command(AT_TCP_CONNECT);
+    sim808_send_command(AT_TCP_SOCKET);
     sim808_wait_for_response(response, sizeof(response), 10000);
     if (strstr(response, "ERROR")) {
         printf("*******Error: No se pudo realizar la conexión TCP.*******\n");

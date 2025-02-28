@@ -1,10 +1,10 @@
+#include "timers.h"
 #include "gprs_state_machine.h"
 #include <string.h>
 #include "gsm_data.h"
 #include "sim808_gprs.h"
 #include "freertos/FreeRTOS.h" // Incluir para FreeRTOS
 #include "freertos/task.h" // Incluir para vTaskDelay y pdMS_TO_TICKS
-#include "timers.h"
 #include <stdbool.h>
 
 // Configuración
@@ -100,11 +100,11 @@ void gprs_state_machine_run(void) {
 
                 case GPRS_SUBSTATE_APN:
                     if (sim808_check_apn_present()){
-                        gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
+                        gprs_connection_substate = GPRS_SUBSTATE_PPP;
 
                     }else{
                         if (retry_function(sim808_gprs_connect_apn, "sim808_gprs_connect_apn")) {
-                          gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
+                          gprs_connection_substate = GPRS_SUBSTATE_PPP;
                         } else {
                           gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                         }
@@ -120,19 +120,19 @@ void gprs_state_machine_run(void) {
                     break;
 
                 case GPRS_SUBSTATE_PPP:
-                    if (sim808_check_apn_present()){
-                       gprs_connection_substate = GPRS_SUBSTATE_IP;
+                    if (sim808_check_ppp_status()){
+                       gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
 
                     }else{
                        if (retry_function(sim808_gprs_establish_ppp, "sim808_gprs_establish_ppp")) {
-                           gprs_connection_substate = GPRS_SUBSTATE_IP;
+                           gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
                         } else {
                             gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                         }
                     }
                     break;
 
-                case GPRS_SUBSTATE_IP:
+                case GPRS_SUBSTATE_IP: //Nos lo saltamos por ahora
                     if (retry_function(sim808_gprs_get_ip, "sim808_gprs_get_ip")) {
                         gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
                     } else {
@@ -169,7 +169,7 @@ void gprs_state_machine_run(void) {
 
                 case GPRS_SUBSTATE_CONNECTED:
                     current_state = COMPROBACION_RED; // Transición al siguiente estado
-                    gprs_connection_substate = GPRS_SUBSTATE_INIT;
+                    //gprs_connection_substate = GPRS_SUBSTATE_SIM;
                     break;
             }
             break;
@@ -186,7 +186,7 @@ void gprs_state_machine_run(void) {
         case ENVIAR_DATOS: 
             printf("ESTADO MÁQUINA GPRS: Envio de datos.------\n");
             if (sim808_check_network_status()) {  //Provisional
-                sim808_gprs_send_data(&buffer_salida);
+                sim808_gprs_send_data(buffer_salida);
                 current_state = CONFIRMAR_ENVIO;
             } else {
                 printf("Error al conectar al GPRS.\n");
