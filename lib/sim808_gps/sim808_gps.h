@@ -26,7 +26,7 @@ int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_
 int sim808_init(void);
 
 // Activa el GPS del SIM808, tal vez lo elimine porque ya le mando este comando dentro de la inicializacion
-//void sim808_gps_power_on(void);
+int sim808_gps_power_on(void);
 
 // Reinicia el GPS en el modo especificado
 void sim808_gps_reset_mode(int mode);

@@ -7,27 +7,18 @@
 
 #define UART_NUM UART_NUM_1
 
-
-//Preparar tarjeta SIM
-int sim808_config_sim(void){
-    char response[254];
-    //Paso 0.0: Activar todas las funcionalidades
-    sim808_send_command("AT+CFUN=1\r\n");
+int sim808_full_reset(void) {
+    char response[256];
+    // Enviar el comando AT+CFUN=1,1 para reiniciar el módulo
+    sim808_send_command("AT+CFUN=1,1\r\n");
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-
-     // Paso 0.1: Verificar el estado de la tarjeta SIM
-    sim808_send_command("AT+CPIN?\r\n");
-    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-    if (!strstr(response, "+CPIN: READY")) {
-        // Introducir el PIN si la tarjeta lo requiere
-        sim808_send_command("AT+CPIN=\"8495\"\r\n"); 
-        sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-        if (!strstr(response, "OK")) {
-            printf("*******Error: No se pudo desbloquear la tarjeta SIM.*******\n");
-            return 0;
-        }
-    } 
-    return 1;
+    if (strstr(response, "OK") != NULL) {
+        
+        return 1;  // Reinicio exitoso
+    } else {
+        return 0;  // Error en el reinicio
+    
+    }
 }
 
 int sim808_check_network_status(){
@@ -92,6 +83,59 @@ int sim808_check_network_status(){
 
      // Retornar 1 solo si todas las condiciones se cumplen
      return (network_ok == 3 && cfun_ok == 1) ? 1 : 0;
+}
+
+// Función para comprobar si el APN está presente
+int sim808_check_apn_present(void) {
+    char response[256];
+    sim808_send_command("AT+CGDCONT?\r\n");
+    sim808_wait_for_response(response, sizeof(response), 5000); // Ajusta el tiempo de espera si es necesario
+
+    if (strstr(response, APN)) { 
+        printf("APN ya configurado.\n");
+        return 1; // APN presente
+    } else {
+        printf("APN no configurado.\n");
+        return 0; // APN no presente
+    }
+}
+
+int sim808_check_ppp_status(void) {
+    char response[256];
+
+    // Comando AT+CIPSTATUS
+    sim808_send_command("AT+CIPSTATUS\r\n");
+    sim808_wait_for_response(response, sizeof(response), 5000); // Ajusta el tiempo de espera si es necesario
+
+    if (strstr(response, "PPP UP") != NULL) {
+        printf("Estado PPP: PPP UP\n");
+        return 1; // Enlace PPP establecido
+    } else {
+        printf("Estado PPP: PPP DOWN o desconocido.\n");
+        return 0; // Enlace PPP no establecido
+    }
+}
+
+//Paso 0: Preparar tarjeta SIM
+int sim808_config_sim(void){
+    char response[254];
+    //Paso 0.0: Activar todas las funcionalidades
+    sim808_send_command("AT+CFUN=1\r\n");
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+
+     // Paso 0.1: Verificar el estado de la tarjeta SIM
+    sim808_send_command("AT+CPIN?\r\n");
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+    if (!strstr(response, "+CPIN: READY")) {
+        // Introducir el PIN si la tarjeta lo requiere
+        sim808_send_command("AT+CPIN=\"8495\"\r\n"); 
+        sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+        if (!strstr(response, "OK")) {
+            printf("*******Error: No se pudo desbloquear la tarjeta SIM.*******\n");
+            return 0;
+        }
+    } 
+    return 1;
 }
 
 // Paso 1: Conectar a GPRS

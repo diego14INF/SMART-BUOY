@@ -118,20 +118,20 @@ float ina219_get_power() {
 
 void ina219_log_data() {
     float shunt_voltage = ina219_get_shunt_voltage();
-    ESP_LOGI(TAG, "Shunt Voltage: %.2f mV", shunt_voltage);
+    //ESP_LOGI(TAG, "Shunt Voltage: %.2f mV", shunt_voltage);
     
 
     float bus_voltage = ina219_get_bus_voltage();
-    ESP_LOGI(TAG, "Bus Voltage: %.2f V", bus_voltage);
+    //ESP_LOGI(TAG, "Bus Voltage: %.2f V", bus_voltage);
  
 
     float current = ina219_get_current();
-    ESP_LOGI(TAG, "Current: %.3f A", current);
+    //ESP_LOGI(TAG, "Current: %.3f A", current);
    
     float power = ina219_get_power();
-    ESP_LOGI(TAG, "Power: %.3f W", power);
+    //ESP_LOGI(TAG, "Power: %.3f W", power);
 
-    vTaskDelay(pdMS_TO_TICKS(2000));  // 2 segundos
+    //vTaskDelay(pdMS_TO_TICKS(2000));  // Espera innecesaria ya la tengo en el main// 2 segundos
 
 
     //  FILE *file = fopen("/spiffs/ina219_log.txt", "a");

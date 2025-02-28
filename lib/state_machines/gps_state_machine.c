@@ -32,6 +32,7 @@ void gps_state_machine_init(void) {
     current_state = STATE_VERIFY_GPS;
     gps_retry_count = 0;
     acquisition_retry_count = 0;
+    sim808_gps_power_on();
     data_storage_init();
     printf("Máquina de estados del GPS inicializada.\n");
 }

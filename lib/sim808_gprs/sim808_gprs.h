@@ -19,16 +19,21 @@
 #define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" #define GPRS_PORT "\"\r\n" // Conectar a servidor TCP
 
 
-// Prototipos de funciones
+// Funciones de configuracion
 int sim808_config_sim(void);
-int sim808_check_network_status();
 int sim808_gprs_connect_init();
 int sim808_gprs_connect_apn();
 int sim808_gprs_activate_data();
 int sim808_gprs_establish_ppp();
-int sim808_gprs_get_ip();
 int sim808_gprs_tcp_connect();
+
 void sim808_gprs_send_data(char *shipping_buffer);
 int sim808_gprs_disconnect(void);
+//Funciones de comprobacion
+int sim808_check_network_status();
+int sim808_check_apn_present(void);
+int sim808_check_ppp_status(void);
+int sim808_gprs_get_ip();
+int sim808_full_reset(void);
 
 #endif // SIM808_GPRS_H

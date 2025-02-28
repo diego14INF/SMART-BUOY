@@ -25,10 +25,13 @@ typedef enum {
     GPRS_SUBSTATE_IP,
     GPRS_SUBSTATE_TCP_CONNECT,
     GPRS_SUBSTATE_CONNECTED,
-    GPRS_SUBSTATE_ERROR
+    GPRS_SUBSTATE_ERROR,
+    GPRS_SUBSTATE_RESET_WAIT,
 } GPRSConnectionSubstate;
 
 void gprs_state_machine_init(void);
+
+int retry_function(int (*func)(void), const char *func_name);
 
 // Función principal de la máquina de estados
 void gprs_state_machine_run(void);

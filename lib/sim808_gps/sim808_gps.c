@@ -147,14 +147,15 @@ int sim808_init() {
        printf("Error al crear el semáforo de respuesta.\n");
        return 0; // Error en la inicialización
     }
+    return 1;
 
-    // Enciende el GPS
-    sim808_send_command(GPS_PWR_ON_COMMAND);
+}
+
+int sim808_gps_power_on(){   // Enciende el GPS
     char response[64];
+
+    sim808_send_command(GPS_PWR_ON_COMMAND);  
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-
-    printf("Respuesta a la inicialización: %s\n", response);
-
     if (strstr(response, "OK") != NULL) {
         
         return 1;  // Inicialización exitosa
