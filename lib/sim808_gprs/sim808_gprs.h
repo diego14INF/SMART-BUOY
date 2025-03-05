@@ -8,7 +8,7 @@
 #define GPRS_USER "telefonica"   // Usuario (si es necesario)
 #define GPRS_PASS "8495"   // Contraseña (si es necesario)
 #define GPRS_SERVER "https://gps-data-server.glitch.me"  // IP o URL del servidor al que enviar los datos
-#define GPRS_PORT 3000            // Puerto
+#define GPRS_PORT 443            // Puerto
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
