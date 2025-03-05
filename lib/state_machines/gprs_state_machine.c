@@ -79,7 +79,7 @@ void gprs_state_machine_run(void) {
             }
             break;
 
-            case PREPARAR_RED:
+        case PREPARAR_RED:
             printf("ESTADO MÁQUINA GPRS: Preparación de red de datos.------\n");
             switch (gprs_connection_substate) {
                 case GPRS_SUBSTATE_SIM:
@@ -168,7 +168,7 @@ void gprs_state_machine_run(void) {
         
 
                 case GPRS_SUBSTATE_CONNECTED:
-                    current_state = COMPROBACION_RED; // Transición al siguiente estado
+                    current_state = ENVIAR_DATOS; // Transición al siguiente estado
                     //gprs_connection_substate = GPRS_SUBSTATE_SIM;
                     break;
             }
@@ -176,21 +176,84 @@ void gprs_state_machine_run(void) {
 
         case COMPROBACION_RED:
             printf("ESTADO MÁQUINA GPRS: Comprobando la red de datos.------\n");
-            if (retry_function(sim808_check_network_status, "sim808_check_network_status")) {
-                current_state = ENVIAR_DATOS;
-            } else {
-                current_state = PREPARAR_RED;
+            
+            // Verificar el estado de conexión PPP mediante sim808_check_ppp_status()
+            switch (sim808_check_ppp_status()) {
+                case 1: // IP INITIAL
+                    printf("Estado: IP INITIAL. Preparando configuración del APN.\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_APN;
+                    break;
+
+                case 2: // IP START
+                    printf("Estado: IP START. Configurando conexión GPRS.\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_INIT;
+                    break;
+
+                case 3: // IP CONFIG
+                    printf("Estado: IP CONFIG. Configuración de red en progreso.\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
+                    break;
+
+                case 4: // IP GPRSACT
+                    printf("Estado: IP GPRSACT. Contexto PDP activado.\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_PPP;
+                    break;
+
+                case 5: // IP STATUS
+                    printf("Estado: IP STATUS. Listo para iniciar la conexión TCP.\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
+                    break;
+
+                case 6: // CONNECT OK
+                    printf("Estado: CONNECT OK. Conexión TCP establecida.\n");
+                    current_state = ENVIAR_DATOS;
+                    break;
+
+                case 7: // PDP DEACT
+                    printf("Estado: PDP DEACT. Contexto PDP desactivado. Reintentando...\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
+                    break;
+
+                case 8: // TCP CLOSED
+                    printf("Estado: TCP CLOSED. Conexión TCP cerrada.\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
+                    break;
+
+                case 9: // CONNECT FAIL
+                    printf("Estado: CONNECT FAIL. Fallo al conectar. Reiniciando módulo...\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+                    break;
+                    
+                case 10: // TCP CONNECTING
+                    printf("Estado: TCP CONNECTING. Estableciendo conexión TCP...\n");
+                    // Quedarse en este estado y esperar a que cambie
+                    current_state = COMPROBACION_RED;
+                    break;
+
+                case -1: // Error o estado desconocido
+                    printf("Estado desconocido. Reiniciando el proceso de conexión.\n");
+                    current_state = PREPARAR_RED;
+                    gprs_connection_substate = GPRS_SUBSTATE_SIM;
+                    break;
             }
             break;
 
         case ENVIAR_DATOS: 
             printf("ESTADO MÁQUINA GPRS: Envio de datos.------\n");
-            if (sim808_check_network_status()) {  //Provisional
+            if (sim808_check_ppp_status()==6) {  
                 sim808_gprs_send_data(buffer_salida);
                 current_state = CONFIRMAR_ENVIO;
             } else {
                 printf("Error al conectar al GPRS.\n");
-                current_state = ERROR;
+                current_state = COMPROBACION_RED;
             }
             break;
 

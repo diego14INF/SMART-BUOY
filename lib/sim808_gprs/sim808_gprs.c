@@ -102,18 +102,46 @@ int sim808_check_apn_present(void) {
 int sim808_check_ppp_status(void) {
     char response[256];
 
-    // Comando AT+CIPSTATUS
+    // Enviar el comando AT+CIPSTATUS
     sim808_send_command("AT+CIPSTATUS\r\n");
     sim808_wait_for_response(response, sizeof(response), 5000); // Ajusta el tiempo de espera si es necesario
 
-    if (strstr(response, "PPP UP") != NULL) {
-        printf("Estado PPP: PPP UP\n");
-        return 1; // Enlace PPP establecido
+    if (strstr(response, "IP INITIAL") != NULL) {
+        printf("Estado PPP: IP INITIAL - Servicios IP iniciados pero no configurados.\n");
+        return 1;
+    } else if (strstr(response, "IP START") != NULL) {
+        printf("Estado PPP: IP START - Listo para configurar la conexión GPRS.\n");
+        return 2;
+    } else if (strstr(response, "IP CONFIG") != NULL) {
+        printf("Estado PPP: IP CONFIG - Configuración de red en curso.\n");
+        return 3;
+    } else if (strstr(response, "IP GPRSACT") != NULL) {
+        printf("Estado PPP: IP GPRSACT - Contexto PDP activado.\n");
+        return 4;
+    } else if (strstr(response, "IP STATUS") != NULL) {
+        printf("Estado PPP: IP STATUS - Listo para iniciar una conexión TCP/UDP.\n");
+        return 5;
+    } else if (strstr(response, "CONNECT OK") != NULL) {
+        printf("Estado PPP: CONNECT OK - Conexión TCP/UDP establecida.\n");
+        return 6;
+    } else if (strstr(response, "PDP DEACT") != NULL) {
+        printf("Estado PPP: PDP DEACT - Contexto PDP desactivado.\n");
+        return 7;
+    } else if (strstr(response, "TCP CLOSED") != NULL) {
+        printf("Estado PPP: TCP CLOSED - Conexión TCP cerrada.\n");
+        return 8;
+    } else if (strstr(response, "CONNECT FAIL") != NULL) {
+        printf("Estado PPP: CONNECT FAIL - Error al intentar conectar.\n");
+        return 9;
+    } else if (strstr(response, "TCP CONNECTING") != NULL) {
+        printf("Estado PPP: CONNECTING... - Estableciendo conexión.\n");
+        return 10;
     } else {
-        printf("Estado PPP: PPP DOWN o desconocido.\n");
-        return 0; // Enlace PPP no establecido
+        printf("Estado PPP: Desconocido - Respuesta: %s\n", response);
+        return -1; // Código para estado desconocido o error
     }
 }
+
 
 //Paso 0: Preparar tarjeta SIM
 int sim808_config_sim(void){
@@ -211,31 +239,71 @@ int sim808_gprs_tcp_connect(void) {
     return 1;
 }
 
-// Enviar los datos por GPRS
 void sim808_gprs_send_data(char *shipping_buffer) {
     char response[256];
-    //char http_request[512];
-    // Preparar solicitud HTTP
-    // snprintf(http_request, sizeof(http_request),
-    //          "POST /upload-data HTTP/1.1\r\n"
-    //          "Host: <IP_DEL_SERVIDOR>:3000\r\n"
-    //          "Content-Type: application/json\r\n"
-    //          "Content-Length: %d\r\n"
-    //          "\r\n"
-    //          "%s",
-    //          strlen(shipping_buffer), shipping_buffer);
+    char http_request[512];
+
+    // Preparar la solicitud HTTP
+    snprintf(http_request, sizeof(http_request),
+             "POST /upload-data HTTP/1.1\r\n"
+             "Host: <IP_DEL_SERVIDOR>:3000\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %d\r\n"
+             "\r\n"
+             "%s",
+             strlen(shipping_buffer), shipping_buffer);
 
     // Iniciar la transmisión de datos
     sim808_send_command("AT+CIPSEND\r\n");
-    //sim808_send_command(http_request);
-    //Recuerda que tengo preparar el shipping_buffer en formato json!!!!!
-    sim808_send_command(shipping_buffer);
-    uart_write_bytes(UART_NUM, "\x1A", 1);  // CTRL+Z para enviar
 
-    // Verificar si el envío fue exitoso
-    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-    printf("Datos enviados: %s\n", shipping_buffer);
+    // Esperar el símbolo '>' indicando que el módulo está listo para recibir datos
+    sim808_wait_for_response(response, sizeof(response), 5000);
+    if (strstr(response, ">")) {
+        printf("El módulo está listo para recibir datos.\n");
+
+        // Enviar los datos
+        sim808_send_command(http_request);
+        uart_write_bytes(UART_NUM, "\x1A", 1); // CTRL+Z para enviar y finalizar
+
+        // Verificar el resultado del envío
+        sim808_wait_for_response(response, sizeof(response), 10000); // Esperar hasta 10s
+        if (strstr(response, "SEND OK")) {
+            printf("Datos enviados correctamente: %s\n", shipping_buffer);
+        } else if (strstr(response, "SEND FAIL")) {
+            printf("Error: El envío de datos falló. Respuesta del módulo: %s\n", response);
+        } else {
+            printf("Error desconocido durante el envío de datos. Respuesta del módulo: %s\n", response);
+        }
+    } else {
+        printf("Error: El módulo no está listo para enviar datos. Respuesta: %s\n", response);
+    }
 }
+
+// Enviar los datos por GPRS
+// void sim808_gprs_send_data(char *shipping_buffer) {
+//     char response[256];
+//     char http_request[512];
+//     //Preparar solicitud HTTP
+//     snprintf(http_request, sizeof(http_request),
+//              "POST /upload-data HTTP/1.1\r\n"
+//              "Host: <IP_DEL_SERVIDOR>:3000\r\n"
+//              "Content-Type: application/json\r\n"
+//              "Content-Length: %d\r\n"
+//              "\r\n"
+//              "%s",
+//              strlen(shipping_buffer), shipping_buffer);
+
+//     // Iniciar la transmisión de datos
+//     sim808_send_command("AT+CIPSEND\r\n");
+//     //sim808_send_command(http_request);
+//     //Recuerda que tengo preparar el shipping_buffer en formato json!!!!!
+//     sim808_send_command(shipping_buffer);
+//     uart_write_bytes(UART_NUM, "\x1A", 1);  // CTRL+Z para enviar
+
+//     // Verificar si el envío fue exitoso
+//     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+//     printf("Datos enviados: %s\n", shipping_buffer);
+// }
 
 // Desconectar la sesión GPRS
 int sim808_gprs_disconnect(void) {
