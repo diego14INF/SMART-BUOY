@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 // Configuración
-#define GSM_BATCH_SIZE 1
+#define GSM_BATCH_SIZE 5
 #define GSM_MAX_RETRIES 5
 #define MEMORY_SIZE 100
 #define MAX_ATTEMPTS 3
@@ -21,6 +21,7 @@ static int processed_index; // Índice del último registro procesado
 static char buffer_salida[2760];
 static bool last_send_successful; // Indica si el último envío fue exitoso
 bool timer_finished;
+static int network_check_attempts;
 
 // Variables globales
 // Inicializa la máquina de estados
@@ -30,6 +31,7 @@ static GPRSConnectionSubstate gprs_connection_substate = GPRS_SUBSTATE_SIM;
 static int retry_count = 0;
 static int processed_index = 0; // Índice del último registro procesado
 static bool last_send_successful = true; // Indica si el último envío fue exitoso
+static int network_check_attempts = 0;// Definir un contador global o dentro de la máquina de estado (según el diseño actual)
 }
 
 // Función de reintento genérica
@@ -150,6 +152,7 @@ void gprs_state_machine_run(void) {
 
                 case GPRS_SUBSTATE_ERROR:
                     printf("Error en la conexión GPRS. Intentando reiniciar...............\n");
+                    sim808_gprs_disconnect();
                     sim808_full_reset();
                     init_timer(10); // Iniciar temporizador de 10 segundos
                     gprs_connection_substate = GPRS_SUBSTATE_RESET_WAIT; // Transición al subestado de espera
@@ -175,8 +178,16 @@ void gprs_state_machine_run(void) {
             break;
 
         case COMPROBACION_RED:
-            printf("ESTADO MÁQUINA GPRS: Comprobando la red de datos.------\n");
-            
+            printf("ESTADO MÁQUINA GPRS: Comprobando la red de datos.-------------------------------------\n");
+            // Incrementar el contador de intentos
+            network_check_attempts++;
+            if (network_check_attempts > 5) {
+               printf("Se alcanzó el número máximo de intentos de comprobación de red. Transición al estado de error.\n");
+               gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+               current_state = PREPARAR_RED;
+               network_check_attempts = 0; // Reiniciar el contador después de ingresar al estado de error
+            break;
+            }
             // Verificar el estado de conexión PPP mediante sim808_check_ppp_status()
             switch (sim808_check_ppp_status()) {
                 case 1: // IP INITIAL
@@ -231,7 +242,7 @@ void gprs_state_machine_run(void) {
                     current_state = PREPARAR_RED;
                     gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                     break;
-                    
+
                 case 10: // TCP CONNECTING
                     printf("Estado: TCP CONNECTING. Estableciendo conexión TCP...\n");
                     // Quedarse en este estado y esperar a que cambie
@@ -247,7 +258,7 @@ void gprs_state_machine_run(void) {
             break;
 
         case ENVIAR_DATOS: 
-            printf("ESTADO MÁQUINA GPRS: Envio de datos.------\n");
+            printf("ESTADO MÁQUINA GPRS: Envio de datos.-------------------------------------\n");
             if (sim808_check_ppp_status()==6) {  
                 sim808_gprs_send_data(buffer_salida);
                 current_state = CONFIRMAR_ENVIO;
@@ -258,7 +269,7 @@ void gprs_state_machine_run(void) {
             break;
 
         case CONFIRMAR_ENVIO: {
-            printf("ESTADO MÁQUINA GPRS: Confirmanción de envio------\n");
+            printf("ESTADO MÁQUINA GPRS: Confirmanción de envio------------------------------\n");
             if (last_send_successful) {
                 printf("Datos enviados correctamente.\n");
                 retry_count = 0;

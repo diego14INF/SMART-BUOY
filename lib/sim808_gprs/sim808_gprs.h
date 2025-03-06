@@ -21,6 +21,18 @@
 #define AT_PDP_CONNECT "AT+CGACT=1,1\r\n"       // Activar contexto PDP
 #define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(GPRS_PORT) "\"\r\n" // Conectar a servidor TCP
 
+// Definiciones de comandos AT
+#define CMD_HTTPINIT "AT+HTTPINIT\r\n"
+#define CMD_HTTPSSL "AT+HTTPSSL=1\r\n"
+#define CMD_HTTPPARA_URL "AT+HTTPPARA=\"URL\",\"%s\"\r\n"
+#define CMD_HTTPPARA_CONTENT "AT+HTTPPARA=\"CONTENT\",\"application/json\"\r\n"
+#define CMD_HTTPDATA "AT+HTTPDATA=%d,10000\r\n"
+#define CMD_HTTPACTION "AT+HTTPACTION=1\r\n"
+#define CMD_HTTPREAD "AT+HTTPREAD\r\n"
+#define CMD_HTTPTERM "AT+HTTPTERM\r\n"
+
+#define RESPONSE_BUFFER_SIZE 512
+#define RESPONSE_TIMEOUT_MS 5000
 
 // Funciones de configuracion
 int sim808_config_sim(void);
@@ -38,5 +50,7 @@ int sim808_check_apn_present(void);
 int sim808_check_ppp_status(void);
 int sim808_gprs_get_ip();
 int sim808_full_reset(void);
+
+int sim808_gprs_https_request(const char *url, const char *data);
 
 #endif // SIM808_GPRS_H

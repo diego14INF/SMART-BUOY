@@ -194,11 +194,14 @@ int sim808_gps_get_status() {
             case 0:
                 printf("GPS: Ubicación desconocida.\n");
                 return 3;
-            // default:
-            //     printf("GPS: Estado desconocido o sin respuesta.\n");
-            //     return 2; 
+            default:
+                 printf("GPS: Estado desconocido o sin respuesta.\n");
+                return 4; 
         }
  
+    }else{
+        printf("GPS: Estado desconocido o sin respuesta.\n");
+        return 4; 
     }
  return 0;
 }
