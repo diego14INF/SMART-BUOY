@@ -29,6 +29,20 @@ typedef enum {
     GPRS_SUBSTATE_RESET_WAIT,
 } GPRSConnectionSubstate;
 
+typedef enum {
+    HTTP_STATE_INIT,
+    HTTP_STATE_ENABLE,
+    HTTP_STATE_URL_SETUP,
+    HTTP_STATE_CONTENT_TYPE,
+    HTTP_STATE_PREPARE_REQUEST,
+    HTTP_STATE_SEND_DATA,
+    HTTP_STATE_POST_ACTION,
+    HTTP_STATE_READ_RESPONSE,
+    HTTP_STATE_HTTP_TERMINATE,
+    HTTP_STATE_FINISHED,
+    HTTP_STATE_ERROR
+} HTTPState;
+
 void gprs_state_machine_init(void);
 
 int retry_function(int (*func)(void), const char *func_name);

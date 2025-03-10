@@ -8,7 +8,9 @@
 #define GPRS_USER "telefonica"   // Usuario (si es necesario)
 #define GPRS_PASS "8495"   // Contraseña (si es necesario)
 #define GPRS_SERVER "https://gps-data-server.glitch.me"  // IP o URL del servidor al que enviar los datos
-#define GPRS_PORT 443            // Puerto
+#define HTTP_PORT 80            // Puerto
+#define HTTPS_PORT 443
+#define GLITCH_PORT 3000
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -19,7 +21,8 @@
 #define AT_GPRS_APN "AT+CGDCONT=1,\"IP\",\"" APN "\"\r\n" // Configuración APN
 #define AT_GPRS_STATUS "AT+CGACT?\r\n"      // Comprobar estado de la conexión GPRS
 #define AT_PDP_CONNECT "AT+CGACT=1,1\r\n"       // Activar contexto PDP
-#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(GPRS_PORT) "\"\r\n" // Conectar a servidor TCP
+#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(HTTP_PORT) "\"\r\n" // Conectar a servidor TCP
+//#define AT_PDP_CONNECT "AT+CIICR\r\n"
 
 // Definiciones de comandos AT
 #define CMD_HTTPINIT "AT+HTTPINIT\r\n"
@@ -42,7 +45,7 @@ int sim808_gprs_activate_data();
 int sim808_gprs_establish_ppp();
 int sim808_gprs_tcp_connect();
 
-void sim808_gprs_send_data(char *shipping_buffer);
+int sim808_gprs_send_data(char *shipping_buffer);
 int sim808_gprs_disconnect(void);
 //Funciones de comprobacion
 int sim808_check_network_status();
@@ -51,6 +54,16 @@ int sim808_check_ppp_status(void);
 int sim808_gprs_get_ip();
 int sim808_full_reset(void);
 
-int sim808_gprs_https_request(const char *url, const char *data);
+//int sim808_gprs_https_request(char *shipping_buffer);
+
+int sim808_http_init(void);
+int sim808_http_enable_https(void);
+int sim808_http_set_url(void);
+int sim808_http_set_content_type(void);
+int sim808_http_prepare_request(char *shipping_buffer);
+int sim808_http_send_data(char *shipping_buffer);
+int sim808_http_execute_post(void);
+int sim808_http_read_response(void);
+int sim808_http_terminate(void);
 
 #endif // SIM808_GPRS_H

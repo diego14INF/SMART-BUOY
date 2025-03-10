@@ -60,6 +60,8 @@ void gps_task(void *pvParameters) {
             gps_state_machine_run();
 
             printf("GPS Task: Liberando el módulo SIM808.\n");
+            // Esperar antes de liberar el semáforo
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 100ms antes de liberar
             xSemaphoreGive(sim808_semaphore); // Liberar el semáforo
         } else {
             printf("GPS Task: Esperando el semáforo.\n");
@@ -81,6 +83,7 @@ void gprs_task(void *pvParameters) {
             gprs_state_machine_run();
 
             printf("GPRS Task: Liberando el módulo SIM808.\n");
+            vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 100ms antes de liberar
             xSemaphoreGive(sim808_semaphore); // Liberar el semáforo
         } else {
             printf("GPRS Task: Esperando el semáforo.\n");
@@ -90,3 +93,33 @@ void gprs_task(void *pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 1 segundo antes de reintentar
     }
 }
+
+
+// void app_main(void) {
+
+//     // Inicialización del módulo GPS SIM808
+//     printf("Iniciando programa con SIM808...\n");
+//     if (sim808_init()==0){
+//         printf("Error al inicializar el GPS del SIM808.\n");
+//     }
+//     //Inicialización de máquinas de estado:
+    
+//     gps_state_machine_init();
+//     gprs_state_machine_init();
+//     i2c_master_init();
+
+//     ina219_calibrate(0.02,3.2);
+
+    
+//     // Ciclo principal
+//     while (1) {
+//         ina219_log_data();
+//         //Corriendo máquina de estados del GPS
+//         gps_state_machine_run();
+        
+//         //Corriendo máquina de estados del módulo GSM/GPRS
+//         gprs_state_machine_run();
+
+//         vTaskDelay(pdMS_TO_TICKS(5000));  // 5 segundos
+//     }
+// }

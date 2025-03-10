@@ -22,7 +22,6 @@ static bool response_ready = false; // Bandera para indicar que hay una respuest
 static SemaphoreHandle_t response_semaphore; // Semáforo para sincronización
 static QueueHandle_t uart_queue;  // Cola de eventos de UART
 
-// Manejador de eventos de UART
 static void uart_event_task(void *pvParameters) {
     uart_event_t event;
     char buffer[BUF_SIZE];
@@ -33,25 +32,29 @@ static void uart_event_task(void *pvParameters) {
         if (xQueueReceive(uart_queue, &event, portMAX_DELAY)) {
             switch (event.type) {
                 case UART_DATA:  // Se recibieron datos
-                  memset(buffer, 0, BUF_SIZE);
-                  int len = uart_read_bytes(UART_NUM, (uint8_t *)buffer, event.size, pdMS_TO_TICKS(100));
-                  if (len > 0) {
-                    buffer[len] = '\0';
-                    printf("Respuesta del SIM808: %s\n", buffer);
+                    memset(buffer, 0, BUF_SIZE);
+                    int len = uart_read_bytes(UART_NUM, (uint8_t *)buffer, event.size, pdMS_TO_TICKS(100));
+                    if (len > 0) {
+                        buffer[len] = '\0'; // Asegurar la terminación de cadena
+                        printf("Respuesta del SIM808: %s\n", buffer);
 
-                    // Copiar datos a sim808_response
-                    for (int i = 0; i < len && response_index < BUF_SIZE - 1; i++) {
-                        sim808_response[response_index++] = buffer[i];
-                    }
-                    sim808_response[response_index] = '\0'; // Terminar la cadena
+                        // Copiar datos a sim808_response
+                        for (int i = 0; i < len && response_index < BUF_SIZE - 1; i++) {
+                            sim808_response[response_index++] = buffer[i];
+                        }
+                        sim808_response[response_index] = '\0'; // Terminar la cadena
 
-                    // Verificar si la respuesta está completa (buscar "OK" o "ERROR")
-                    if (strstr(sim808_response, "OK") || strstr(sim808_response, "ERROR")) {
-                        response_ready = true;
-                        response_index = 0; // Resetear el índice para la próxima respuesta
-                        xSemaphoreGive(response_semaphore); // Liberar el semáforo
+                        // Verificar si la respuesta está completa
+                        if (strstr(sim808_response, "OK") || 
+                            strstr(sim808_response, "ERROR") || 
+                            strstr(sim808_response, ">") ||  // Para comandos como CIPSEND
+                            strstr(sim808_response, "DOWNLOAD") ||  // Respuestas HTTP
+                            strstr(sim808_response, "+CME ERROR")) {
+                            response_ready = true;
+                            response_index = 0; // Resetear el índice para la próxima respuesta
+                            xSemaphoreGive(response_semaphore); // Liberar el semáforo
+                        }
                     }
-                }
                     break;
 
                 case UART_FIFO_OVF:
@@ -71,7 +74,8 @@ static void uart_event_task(void *pvParameters) {
             }
         }
     }
-}
+ }
+
 
 int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_ms) {
     if (xSemaphoreTake(response_semaphore, pdMS_TO_TICKS(timeout_ms)) == pdTRUE) {
@@ -85,7 +89,14 @@ int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_
             return -1; // Devolver código de error
         }
 
-        return 0; // Respuesta OK
+        // Verificar si hay indicadores de éxito específicos
+        if (strstr(buffer, "OK") || strstr(buffer, ">") || strstr(buffer, "DOWNLOAD")) {
+            return 0; // Respuesta válida y completa
+        }
+
+        // Si no se encontró una respuesta válida
+        printf("Respuesta inesperada del SIM808: %s\n", buffer);
+        return -3; // Código para respuesta desconocida
     } else {
         printf("Timeout esperando respuesta del SIM808.\n");
         buffer[0] = '\0';

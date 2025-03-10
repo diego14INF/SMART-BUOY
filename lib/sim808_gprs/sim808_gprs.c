@@ -231,7 +231,12 @@ int sim808_gprs_tcp_connect(void) {
     char response[128];
     sim808_send_command(AT_TCP_SOCKET);
     sim808_wait_for_response(response, sizeof(response), 10000);
-    if (strstr(response, "ERROR")) {
+    
+    // if (strstr(response, "ALREADY CONNECT")){
+    //     printf("Conexion TCP: %s\n", response); // Tengo que ver con que responde el modulo
+    //     return 1;
+    // }else 
+    if(strstr(response, "ERROR")) {
         printf("*******Error: No se pudo realizar la conexión TCP.*******\n");
         return 0;
     }
@@ -239,19 +244,21 @@ int sim808_gprs_tcp_connect(void) {
     return 1;
 }
 
-void sim808_gprs_send_data(char *shipping_buffer) {
+
+//-----------------------------ENVIO TCP/IP SOCKETS (Version Http) ------------------------------------
+int sim808_gprs_send_data(char *shipping_buffer) {
     char response[256];
     char http_request[512];
 
     // Preparar la solicitud HTTP
     snprintf(http_request, sizeof(http_request),
              "POST /upload-data HTTP/1.1\r\n"
-             "Host: \"" GPRS_SERVER "\":8080\r\n"
+             "Host:\"" GPRS_SERVER "\":%d\r\n"
              "Content-Type: application/json\r\n"
              "Content-Length: %d\r\n"
              "\r\n"
              "%s",
-             strlen(shipping_buffer), shipping_buffer);
+             HTTP_PORT, strlen(shipping_buffer), shipping_buffer);
 
     // Iniciar la transmisión de datos
     sim808_send_command("AT+CIPSEND\r\n");
@@ -269,97 +276,145 @@ void sim808_gprs_send_data(char *shipping_buffer) {
         sim808_wait_for_response(response, sizeof(response), 20000); // Esperar hasta 10s
         if (strstr(response, "SEND OK")) {
             printf("Datos enviados correctamente: %s\n", shipping_buffer);
-            return;
+            return 1;
         } else if (strstr(response, "SEND FAIL")) {
             printf("Error: El envío de datos falló. Respuesta del módulo: %s\n", response);
+            return 0;
         } else {
             printf("Error desconocido durante el envío de datos. Respuesta del módulo: %s\n", response);
+            return 0;
         }
     } else {
         printf("Error: El módulo no está listo para enviar datos. Respuesta: %s\n", response);
+        return 0;
     }
 }
 
-// Implementación de la función principal para solicitud HTTPS
-int sim808_gprs_https_request(const char *url, const char *data) {
-    char command[256];
-    char response[RESPONSE_BUFFER_SIZE];
 
-    // 1. Inicializar HTTP
+
+//-------------------------ENVIO HTTP------------------------------------
+
+int sim808_http_init(void) {
+    char response[128];
     sim808_send_command(CMD_HTTPINIT);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         printf("Error al inicializar HTTP: %s\n", response);
-        return -1;
+        return 0; // Error
     }
+    return 1; // Éxito
+}
 
-    // 2. Habilitar HTTPS (SSL)
+int sim808_http_enable_https(void) {
+    char response[128];
     sim808_send_command(CMD_HTTPSSL);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         printf("Error al habilitar HTTPS: %s\n", response);
-        return -2;
+        return 0; // Error
     }
+    return 1; // Éxito
+}
 
-    // 3. Configurar la URL
-    snprintf(command, sizeof(command), CMD_HTTPPARA_URL, url);
+int sim808_http_set_url(void) {
+    char response[128];
+    char command[256];
+    snprintf(command, sizeof(command), CMD_HTTPPARA_URL, GPRS_SERVER);
     sim808_send_command(command);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         printf("Error al configurar la URL: %s\n", response);
-        return -3;
+        return  0; // Error
     }
+    return 1; // Éxito
+}
 
-    // 4. Configurar el contenido como JSON
+int sim808_http_set_content_type(void) {
+    char response[128];
     sim808_send_command(CMD_HTTPPARA_CONTENT);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         printf("Error al configurar el tipo de contenido: %s\n", response);
-        return -4;
+        return 0; // Error
     }
+    return 1; // Éxito
+}
 
-    // 5. Preparar los datos para el envío
-    snprintf(command, sizeof(command), CMD_HTTPDATA, strlen(data));
+int sim808_http_prepare_request(char *shipping_buffer) {
+    char command[256];
+    char response[128];
+    char http_request[512];
+
+    snprintf(http_request, RESPONSE_BUFFER_SIZE,
+             "POST /upload-data HTTP/1.1\r\n"
+             "Host:\"" GPRS_SERVER "\":%d\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %d\r\n"
+             "\r\n"
+             "%s",
+             HTTP_PORT, strlen(shipping_buffer), shipping_buffer);
+
+    snprintf(command, sizeof(command), CMD_HTTPDATA, strlen(http_request));
     sim808_send_command(command);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         if (strstr(response, "DOWNLOAD") == NULL) {
             printf("Error al preparar los datos: %s\n", response);
-            return -5;
+            return  0; // Error
         }
     }
+    return 1; // Éxito
+}
 
-    // 6. Enviar los datos
-    sim808_send_command(data);
+int sim808_http_send_data(char *shipping_buffer) {
+    char response[128];
+    char http_request[512];
+
+    snprintf(http_request, RESPONSE_BUFFER_SIZE,
+             "POST /upload-data HTTP/1.1\r\n"
+             "Host: " GPRS_SERVER ":%d\r\n"
+             "Content-Type: application/json\r\n"
+             "Content-Length: %d\r\n"
+             "\r\n"
+             "%s",
+             HTTP_PORT, strlen(shipping_buffer), shipping_buffer);
+
+    sim808_send_command(http_request);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         printf("Error al enviar los datos: %s\n", response);
-        return -6;
+        return  0; // Error
     }
+    return 1; // Éxito
+}
 
-    // 7. Ejecutar la solicitud POST
+int sim808_http_execute_post(void) {
+    char response[128];
     sim808_send_command(CMD_HTTPACTION);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         if (strstr(response, "+HTTPACTION:") == NULL) {
             printf("Error al ejecutar la solicitud POST: %s\n", response);
-            return -7;
+            return  0; // Error
         }
     }
+    return 1; // Éxito
+}
 
-    // 8. Leer la respuesta del servidor
+int sim808_http_read_response(void) {
+    char response[128];
     sim808_send_command(CMD_HTTPREAD);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         printf("Error al leer la respuesta: %s\n", response);
-        return -8;
+        return  0; // Error
     }
-
-    // Imprimir la respuesta del servidor
     printf("Respuesta del servidor: %s\n", response);
+    return 1; // Éxito
+}
 
-    // 9. Finalizar la conexión HTTP
+int sim808_http_terminate(void) {
+    char response[128];
     sim808_send_command(CMD_HTTPTERM);
     if (sim808_wait_for_response(response, sizeof(response), RESPONSE_TIMEOUT_MS) != 0) {
         printf("Error al finalizar HTTP: %s\n", response);
-        return -9;
+        return 0; // Error
     }
-
-    printf("Solicitud HTTPS enviada con éxito.\n");
-    return 0;
+    return 1; // Éxito
 }
+
 
 // Desconectar la sesión GPRS
 int sim808_gprs_disconnect(void) {
