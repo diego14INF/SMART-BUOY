@@ -124,8 +124,8 @@ void gprs_state_machine_run(void) {
                     break;
 
                 case GPRS_SUBSTATE_PPP:
-                    if (sim808_check_ppp_status()){
-                       gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
+                    if (sim808_check_ppp_status()==6){  
+                       gprs_connection_substate = GPRS_SUBSTATE_CONNECTED;
 
                     }else{
                        if (retry_function(sim808_gprs_establish_ppp, "sim808_gprs_establish_ppp")) {

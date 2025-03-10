@@ -54,12 +54,12 @@ void gps_task(void *pvParameters) {
     while (1) {
         // Intentar tomar el semáforo
         if (xSemaphoreTake(sim808_semaphore, portMAX_DELAY)) {
-            printf("GPS Task: Accediendo al módulo SIM808.\n");
+            printf("-------->>>>>>GPS>>>>>>--------\n");
 
             // Ejecutar la máquina de estado GPS
             gps_state_machine_run();
 
-            printf("GPS Task: Liberando el módulo SIM808.\n");
+            printf("--------<<<<<<GPS<<<<<<--------\n");
             // Esperar antes de liberar el semáforo
             vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 100ms antes de liberar
             xSemaphoreGive(sim808_semaphore); // Liberar el semáforo
@@ -77,12 +77,12 @@ void gprs_task(void *pvParameters) {
     while (1) {
         // Intentar tomar el semáforo
         if (xSemaphoreTake(sim808_semaphore, portMAX_DELAY)) {
-            printf("GPRS Task: Accediendo al módulo SIM808.\n");
+            printf("-------->>>>>>GPR(S)>>>>>>--------\n");
 
             // Ejecutar la máquina de estado GPRS
             gprs_state_machine_run();
 
-            printf("GPRS Task: Liberando el módulo SIM808.\n");
+            printf("--------<<<<<<GPR(S)<<<<<<--------\n");
             vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 100ms antes de liberar
             xSemaphoreGive(sim808_semaphore); // Liberar el semáforo
         } else {

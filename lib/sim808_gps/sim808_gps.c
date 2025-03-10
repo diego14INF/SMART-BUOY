@@ -68,6 +68,12 @@ static void uart_event_task(void *pvParameters) {
                     uart_flush_input(UART_NUM);
                     xQueueReset(uart_queue);
                     break;
+                case UART_FRAME_ERR:
+                    // Manejo del error de trama (problema con el bit de parada o datos corruptos)
+                    printf("Error: Error de trama detectado. Verifica los bits de parada y la configuración UART.\n");
+                    uart_flush_input(UART_NUM);  // Vaciar el buffer para evitar datos corruptos
+                    response_index = 0;          // Resetear el índice de respuesta
+                    break;
 
                 default:
                     break;
@@ -253,7 +259,7 @@ int sim808_get_battery_status(GPSData *data) {
     if (sscanf(strstr(response, "+CBC: "), "+CBC: %*d,%d,%d", &level,&vbat)==2){ 
         data->battery_level= level;
         data->battery_voltage= vbat;
-        printf("Nivel de la bateria: %d, Voltaje de la batería: %d mV\n", data->battery_level, data->battery_voltage); 
+        //printf("Nivel de la bateria: %d, Voltaje de la batería: %d mV\n", data->battery_level, data->battery_voltage); 
         return 1;
     }else {
         printf("No se pudo obtener el voltaje de la batería.\n");
