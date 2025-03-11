@@ -39,7 +39,7 @@ void gprs_state_machine_init(void) {
 // Función de reintento genérica
 int retry_function(int (*func)(void), const char *func_name) {
     int retry_delay = 4000; // 4 segundos de retraso inicial
-    const int max_timeout = 20000; // 20 segundos de tiempo máximo
+    const int max_timeout = 12000; // 20 segundos de tiempo máximo
     int total_delay = 0;
 
     while (total_delay <= max_timeout) {
@@ -86,7 +86,7 @@ void gprs_state_machine_run(void) {
         case PREPARAR_RED:
             printf("ESTADO MÁQUINA GPRS: Preparación de red de datos.------\n");
             switch (gprs_connection_substate) {
-                case GPRS_SUBSTATE_SIM:
+                case GPRS_SUBSTATE_SIM: //OK
                     if (retry_function(sim808_config_sim, "sim808_config_sim")) {
                         gprs_connection_substate = GPRS_SUBSTATE_INIT;
                     } else {
@@ -95,35 +95,39 @@ void gprs_state_machine_run(void) {
                     break;
 
                 case GPRS_SUBSTATE_INIT:
-                    if (retry_function(sim808_gprs_connect_init, "sim808_gprs_connect_init")) {
+                   if (sim808_check_gprs_attachment()){
                         gprs_connection_substate = GPRS_SUBSTATE_APN;
-                    } else {
-                        gprs_connection_substate = GPRS_SUBSTATE_ERROR;
-                    }
-                    break;
+                   }else{  
+                      if (retry_function(sim808_gprs_connect_init, "sim808_gprs_connect_init")) {
+                          gprs_connection_substate = GPRS_SUBSTATE_APN;
+                      } else {
+                          gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+                      }
+                   }
+                  break;
 
                 case GPRS_SUBSTATE_APN:
                     if (sim808_check_apn_present()){
-                        gprs_connection_substate = GPRS_SUBSTATE_PPP;
+                        gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
 
                     }else{
                         if (retry_function(sim808_gprs_connect_apn, "sim808_gprs_connect_apn")) {
-                          gprs_connection_substate = GPRS_SUBSTATE_PPP;
+                          gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
                         } else {
                           gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                         }
                     }
                     break;
 
-                case GPRS_SUBSTATE_ACTIVATE:
-                    if (retry_function(sim808_gprs_activate_data, "sim808_gprs_activate_data")) {
-                        gprs_connection_substate = GPRS_SUBSTATE_PPP;
+                case GPRS_SUBSTATE_ACTIVATE: 
+                    if (retry_function(sim808_gprs_wireless_activate, "sim808_gprs_wireless_activate")) {
+                        gprs_connection_substate = GPRS_SUBSTATE_IP;
                     } else {
                         gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                     }
                     break;
 
-                case GPRS_SUBSTATE_PPP:
+                case GPRS_SUBSTATE_PPP: //******NO ES NECESARIO PARA CONEXION TCP */
                     if (sim808_check_ppp_status()==6){  
                        gprs_connection_substate = GPRS_SUBSTATE_CONNECTED;
 
@@ -145,11 +149,12 @@ void gprs_state_machine_run(void) {
                     break;
 
                 case GPRS_SUBSTATE_TCP_CONNECT:
-                    if (retry_function(sim808_gprs_tcp_connect, "sim808_gprs_tcp_connect")) {
-                        gprs_connection_substate = GPRS_SUBSTATE_CONNECTED;
-                    } else {
-                        gprs_connection_substate = GPRS_SUBSTATE_ERROR;
-                    }
+                       if (retry_function(sim808_gprs_tcp_connect, "sim808_gprs_tcp_connect")) {
+                           gprs_connection_substate = GPRS_SUBSTATE_CONNECTED;
+                        } else {
+                           gprs_connection_substate = GPRS_SUBSTATE_ERROR;
+                        }
+                   
                     break;
 
                 case GPRS_SUBSTATE_ERROR:

@@ -8,23 +8,26 @@
 #define GPRS_USER "telefonica"   // Usuario (si es necesario)
 #define GPRS_PASS "8495"   // Contraseña (si es necesario)
 #define GPRS_SERVER "https://gps-data-server.glitch.me"  // IP o URL del servidor al que enviar los datos
-#define HTTP_PORT 80            // Puerto
+#define HTTP_PORT 8080           // Puerto
 #define HTTPS_PORT 443
 #define GLITCH_PORT 3000
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
 
-// Comandos AT para conexión GPRS
-#define AT_GPRS_INIT "AT+CGATT=1\r\n"       // Conectar a la red GPRS
+//Comandos AT de comprobación y control
 #define AT_GPRS_CTRL_SIGNAL "AT+CSQ\r\n"    //Para comprobar valores de la señal gsm, los valores deben entre 10 y 30 son buenos
-#define AT_GPRS_APN "AT+CGDCONT=1,\"IP\",\"" APN "\"\r\n" // Configuración APN
-#define AT_GPRS_STATUS "AT+CGACT?\r\n"      // Comprobar estado de la conexión GPRS
-#define AT_PDP_CONNECT "AT+CGACT=1,1\r\n"       // Activar contexto PDP
-#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(HTTP_PORT) "\"\r\n" // Conectar a servidor TCP
-//#define AT_PDP_CONNECT "AT+CIICR\r\n"
+#define AT_GPRS_CTRL_GPRS_ATTACHMENT "AT+CGATT?\r\n"      // Comprobar estado de la conexión GPRS
+#define AT_GPRS_CTRL_IP "AT+CIFSR?\r\n" //Devuelve IP
 
-// Definiciones de comandos AT
+
+// Comandos AT para conexión TCP (En orden)
+#define AT_GPRS_INIT "AT+CGATT=1\r\n"       // Conectar a la red GPRS
+#define AT_GPRS_APN "AT+CSTT=\"" APN "\"\r\n" // Configuración APN
+#define AT_GPRS_WIRELESS_CONNECT "AT+CIICR\r\n" //Iniciar conexion inalambrica
+#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(GLITCH_PORT) "\"\r\n" // Conectar a servidor TCP
+
+// Definiciones de comandos AT HTTP
 #define CMD_HTTPINIT "AT+HTTPINIT\r\n"
 #define CMD_HTTPSSL "AT+HTTPSSL=1\r\n"
 #define CMD_HTTPPARA_URL "AT+HTTPPARA=\"URL\",\"%s\"\r\n"
@@ -34,6 +37,9 @@
 #define CMD_HTTPREAD "AT+HTTPREAD\r\n"
 #define CMD_HTTPTERM "AT+HTTPTERM\r\n"
 
+//NO NECESARIO
+#define AT_PDP_CONNECT "AT+CGACT=1,1\r\n"       // Activar contexto PDP
+
 #define RESPONSE_BUFFER_SIZE 512
 #define RESPONSE_TIMEOUT_MS 5000
 
@@ -41,18 +47,25 @@
 int sim808_config_sim(void);
 int sim808_gprs_connect_init();
 int sim808_gprs_connect_apn();
-int sim808_gprs_activate_data();
-int sim808_gprs_establish_ppp();
+int sim808_gprs_wireless_activate();
 int sim808_gprs_tcp_connect();
-
 int sim808_gprs_send_data(char *shipping_buffer);
 int sim808_gprs_disconnect(void);
+
+//No necesario por ahora
+int sim808_gprs_establish_ppp();
+
+
 //Funciones de comprobacion
 int sim808_check_network_status();
+int sim808_check_gprs_attachment(void)
 int sim808_check_apn_present(void);
 int sim808_check_ppp_status(void);
 int sim808_gprs_get_ip();
 int sim808_full_reset(void);
+int sim808_check_registration_status(void);
+int sim808_check_functionality_status(void); 
+int sim808_check_signal_strength(void);
 
 //int sim808_gprs_https_request(char *shipping_buffer);
 

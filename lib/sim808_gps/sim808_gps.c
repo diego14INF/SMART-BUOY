@@ -144,6 +144,8 @@ void sim808_send_command(const char *command) {
 
 // Inicializa el módulo SIM808 y UART
 int sim808_init() {
+    char response[254];
+    
     const uart_config_t uart_config = {
         .baud_rate = BAUD_RATE,
         .data_bits = UART_DATA_8_BITS,
@@ -158,6 +160,16 @@ int sim808_init() {
 
     // Crear la tarea de manejo de eventos UART
     xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 5, NULL);
+
+    sim808_send_command("AT\r\n");
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+
+    sim808_send_command("AT+ATE0\r\n");
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+
+    //Paso 0.0: Activar todas las funcionalidades
+    sim808_send_command("AT+CFUN=1\r\n");
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
 
     response_semaphore = xSemaphoreCreateBinary();
     if (response_semaphore == NULL) {
