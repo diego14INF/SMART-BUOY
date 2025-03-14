@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_log.h"
 
 #define UART_NUM UART_NUM_1
 #define TXD_PIN (17)
@@ -21,94 +22,100 @@ static char sim808_response[BUF_SIZE]; // Buffer global para almacenar la respue
 static bool response_ready = false; // Bandera para indicar que hay una respuesta lista
 static SemaphoreHandle_t response_semaphore; // Semáforo para sincronización
 static QueueHandle_t uart_queue;  // Cola de eventos de UART
+static int response_index = 0;
+
 
 static void uart_event_task(void *pvParameters) {
-    uart_event_t event;
-    char buffer[BUF_SIZE];
-    int response_index = 0; // Índice para sim808_response
-
-    while (1) {
-        // Espera eventos de UART
-        if (xQueueReceive(uart_queue, &event, portMAX_DELAY)) {
-            switch (event.type) {
-                case UART_DATA:  // Se recibieron datos
-                    memset(buffer, 0, BUF_SIZE);
-                    int len = uart_read_bytes(UART_NUM, (uint8_t *)buffer, event.size, pdMS_TO_TICKS(100));
-                    if (len > 0) {
-                        buffer[len] = '\0'; // Asegurar la terminación de cadena
-                        printf("Respuesta del SIM808: %s\n", buffer);
-
-                        // Copiar datos a sim808_response
-                        for (int i = 0; i < len && response_index < BUF_SIZE - 1; i++) {
-                            sim808_response[response_index++] = buffer[i];
+        uart_event_t event;
+        char buffer[BUF_SIZE];
+    
+        while (1) {
+            if (xQueueReceive(uart_queue, &event, portMAX_DELAY)) {
+                switch (event.type) {
+                    case UART_DATA: {
+                        memset(buffer, 0, BUF_SIZE);
+                        int len = uart_read_bytes(UART_NUM, (uint8_t *)buffer, event.size, pdMS_TO_TICKS(100));
+                        if (len > 0) {
+                            buffer[len] = '\0';
+                            printf("Respuesta del SIM808:\n%s", buffer); // Datos recibidos
+                            
+                            // Copiar datos al buffer global
+                            if (response_index + len < BUF_SIZE - 1) {
+                                memcpy(&sim808_response[response_index], buffer, len);
+                                response_index += len;
+                                sim808_response[response_index] = '\0';
+                            } else {
+                                response_index = 0; // Reiniciar en caso de desbordamiento
+                            }
+    
+                            // Verificar si la respuesta está completa
+                            if (strstr(sim808_response, "\nERROR") ||
+                                strstr(sim808_response, ">") || strstr(sim808_response, "\nSEND OK") ||
+                                strstr(sim808_response, "DOWNLOAD") || strstr(sim808_response, "+CME ERROR") ||
+                                strstr(sim808_response, "\r\n\r\n0\r\n\r\n") || strstr(sim808_response, ".")) {
+                                response_ready = true;
+                                response_index = 0;
+                                xSemaphoreGive(response_semaphore);
+                            }
+                            else if (strstr(sim808_response, "\nOK")) {
+                                response_ready = true;
+                                response_index = 0;
+                                xSemaphoreGive(response_semaphore);
+                            }
                         }
-                        sim808_response[response_index] = '\0'; // Terminar la cadena
-
-                        // Verificar si la respuesta está completa
-                        if (strstr(sim808_response, "OK") || 
-                            strstr(sim808_response, "ERROR") || 
-                            strstr(sim808_response, ">") ||  // Para comandos como CIPSEND
-                            strstr(sim808_response, "DOWNLOAD") ||  // Respuestas HTTP
-                            strstr(sim808_response, "+CME ERROR")) {
-                            response_ready = true;
-                            response_index = 0; // Resetear el índice para la próxima respuesta
-                            xSemaphoreGive(response_semaphore); // Liberar el semáforo
-                        }
+                        break;
                     }
-                    break;
-
-                case UART_FIFO_OVF:
-                    printf("¡Desbordamiento de FIFO de UART!\n");
-                    uart_flush_input(UART_NUM);
-                    xQueueReset(uart_queue);
-                    break;
-
-                case UART_BUFFER_FULL:
-                    printf("¡Buffer de UART lleno!\n");
-                    uart_flush_input(UART_NUM);
-                    xQueueReset(uart_queue);
-                    break;
-                case UART_FRAME_ERR:
-                    // Manejo del error de trama (problema con el bit de parada o datos corruptos)
-                    printf("Error: Error de trama detectado. Verifica los bits de parada y la configuración UART.\n");
-                    uart_flush_input(UART_NUM);  // Vaciar el buffer para evitar datos corruptos
-                    response_index = 0;          // Resetear el índice de respuesta
-                    break;
-
-                default:
-                    break;
+                    case UART_FIFO_OVF:
+                    case UART_BUFFER_FULL:
+                        printf("UART buffer overflow, flushing input.\n");
+                        uart_flush_input(UART_NUM);
+                        xQueueReset(uart_queue);
+                        break;
+                    case UART_FRAME_ERR:
+                        printf("UART frame error detected.\n");
+                        uart_flush_input(UART_NUM);
+                        response_index = 0;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
-    }
- }
-
-
-int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_ms) {
-    if (xSemaphoreTake(response_semaphore, pdMS_TO_TICKS(timeout_ms)) == pdTRUE) {
-        strncpy(buffer, sim808_response, buffer_size - 1);
-        buffer[buffer_size - 1] = '\0';
-        response_ready = false;
-
-        // Verificar si la respuesta contiene un mensaje de error
-        if (strstr(buffer, "ERROR") || strstr(buffer, "+CME ERROR")) {
-            printf("Error del SIM808: %s\n", buffer);
-            return -1; // Devolver código de error
-        }
-
-        // Verificar si hay indicadores de éxito específicos
-        if (strstr(buffer, "OK") || strstr(buffer, ">") || strstr(buffer, "DOWNLOAD")) {
-            return 0; // Respuesta válida y completa
-        }
-
-        // Si no se encontró una respuesta válida
-        //printf("Respuesta inesperada del SIM808: %s\n", buffer);
-        return -3; // Código para respuesta desconocida
-    } else {
-        printf("Timeout esperando respuesta del SIM808.\n");
-        buffer[0] = '\0';
-        return -2; // Devolver código de timeout
-    }
 }
+
+    
+int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_ms) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        if (xSemaphoreTake(response_semaphore, pdMS_TO_TICKS(timeout_ms)) == pdTRUE) {
+            strncpy(buffer, sim808_response, buffer_size - 1);
+            buffer[buffer_size - 1] = '\0';
+            response_ready = false;
+    
+            if (strstr(buffer, "ERROR") || strstr(buffer, "+CME ERROR")) {
+                printf("SIM808 Error: %s\n", buffer);
+                return -1;
+            }
+            // Verificar si contiene una dirección IP
+          if (strstr(buffer, ".") != NULL) {
+            // Validación básica de formato de dirección IP
+            int num_dots = 0;
+            for (size_t i = 0; i < strlen(buffer); i++) {
+                if (buffer[i] == '.') num_dots++;
+            }
+            if (num_dots == 3) { // Detectar formato típico de IP
+                return 1; // Código de éxito para direcciones IP
+            }
+          }else if (strstr(buffer, "OK") || strstr(buffer, ">") || strstr(buffer, "DOWNLOAD")) {
+                return 0;
+            }
+            return -3;
+        } else {
+            printf("Timeout waiting for SIM808 response.\n");
+            buffer[0] = '\0';
+            return -2;
+        }
+    }
+    
 
 void sim808_send_command(const char *command) {
     uart_write_bytes(UART_NUM, command, strlen(command));
@@ -156,7 +163,9 @@ int sim808_init() {
     uart_param_config(UART_NUM, &uart_config);
     uart_set_pin(UART_NUM, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     uart_driver_install(UART_NUM, BUF_SIZE * 2, BUF_SIZE*2, 10, &uart_queue, 0);
-
+    
+    // Desactivar loopback interno
+    uart_set_loop_back(UART_NUM_1, false);
 
     // Crear la tarea de manejo de eventos UART
     xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 5, NULL);
@@ -171,7 +180,7 @@ int sim808_init() {
     sim808_send_command("AT\r\n");
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
 
-    sim808_send_command("AT+ATE0\r\n");
+    sim808_send_command("ATE0&W\r\n");
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
 
     //Paso 0.0: Activar todas las funcionalidades

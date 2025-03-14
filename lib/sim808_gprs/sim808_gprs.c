@@ -59,8 +59,6 @@ int sim808_check_registration_status() {
     return 0; // No registrado
 }
 
-
-
 int sim808_check_functionality_status() {
     char response[254];
     int cfun_status = 0;
@@ -95,12 +93,11 @@ int sim808_check_gprs_attachment(void) {
     return 0;
 }
 
-// Función para comprobar si el APN está presente
 int sim808_check_apn_present(void) {
     char response[256];
     sim808_send_command("AT+CGDCONT?\r\n");
     sim808_wait_for_response(response, sizeof(response), 5000); // Ajusta el tiempo de espera si es necesario
-
+    
     if (strstr(response, APN)) { 
         printf("APN ya configurado.\n");
         return 1; // APN presente
@@ -166,7 +163,7 @@ int sim808_config_sim(void){
         // Introducir el PIN si la tarjeta lo requiere
         sim808_send_command("AT+CPIN=\"8495\"\r\n"); 
         sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-        if (!strstr(response, "OK")) {
+        if (!strstr(response, "+CPIN: READY")) {
             printf("*******Error: No se pudo desbloquear la tarjeta SIM.*******\n");
             return 0;
         }
@@ -191,7 +188,7 @@ int sim808_gprs_connect_apn(void) {
     char response[128];
     sim808_send_command(AT_GPRS_APN);
     sim808_wait_for_response(response, sizeof(response), 10000);
-    if (!strstr(response, "OK")) {
+    if (!strstr(response, "OK") || !strstr(response, "ERROR")) {
         printf("*******Error: Configuración APN fallida.*******\n");
         return 0;
     }
@@ -258,7 +255,7 @@ int sim808_gprs_tcp_connect(void) {
 
 //-----------------------------ENVIO TCP/IP SOCKETS (Version Http) ------------------------------------
 int sim808_gprs_send_data(char *shipping_buffer) {
-    char response[256];
+    char response[512];
     char http_request[1024];
 
     // Preparar la solicitud HTTP
@@ -286,11 +283,45 @@ int sim808_gprs_send_data(char *shipping_buffer) {
         sim808_send_command(http_request);
         uart_write_bytes(UART_NUM, "\x1A", 1); // CTRL+Z para enviar y finalizar
 
+
         // Verificar el resultado del envío
-        sim808_wait_for_response(response, sizeof(response), 20000); // Esperar hasta 10s
+        sim808_wait_for_response(response, sizeof(response), 10000); // Esperar hasta 10s
+        
+        // Verificar el resultado del envío (esperar "SEND OK")
         if (strstr(response, "SEND OK")) {
-            printf("Datos enviados correctamente: %s\n", shipping_buffer);
-            return 1;
+            printf("Datos enviados correctamente al servidor.\n");
+
+            // Esperar y manejar la respuesta del servidor
+            if (sim808_wait_for_response(response, sizeof(response), 10000)) {
+                printf("Respuesta del servidor: %s\n", response);
+
+                // Procesar el código de estado HTTP
+                if (strstr(response, "HTTP/1.") != NULL) {
+                    int http_code = 0;
+                    sscanf(response, "HTTP/1.%*d %d", &http_code); // Extraer el código de estado HTTP
+                    printf("Código de estado HTTP: %d\n", http_code);
+
+                    if (http_code == 200) {
+                        printf("Solicitud exitosa. Datos procesados correctamente por el servidor.\n");
+                        return 1; // Éxito
+                    } else if (http_code == 400) {
+                        printf("Error: Solicitud incorrecta (400).\n");
+                        return -1; // Error del cliente
+                    } else if (http_code == 500) {
+                        printf("Error: Error interno del servidor (500).\n");
+                        return -2; // Error del servidor
+                    } else {
+                        printf("Código HTTP desconocido: %d. Respuesta: %s\n", http_code, response);
+                        return -3; // Código desconocido
+                    }
+                } else {
+                    printf("Respuesta inesperada del servidor: %s\n", response);
+                    return -4; // Respuesta no válida
+                }
+            } else {
+                printf("Timeout esperando la respuesta del servidor.\n");
+                return 0; // Timeout
+            }
         } else if (strstr(response, "SEND FAIL")) {
             printf("Error: El envío de datos falló. Respuesta del módulo: %s\n", response);
             return 0;

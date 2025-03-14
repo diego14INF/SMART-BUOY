@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 // Configuración
-#define GSM_BATCH_SIZE 1
+#define GSM_BATCH_SIZE 5
 #define GSM_MAX_RETRIES 3
 #define MEMORY_SIZE 100
 #define MAX_ATTEMPTS 3
@@ -140,7 +140,7 @@ void gprs_state_machine_run(void) {
                     }
                     break;
 
-                case GPRS_SUBSTATE_IP: //Nos lo saltamos por ahora
+                case GPRS_SUBSTATE_IP: 
                     if (retry_function(sim808_gprs_get_ip, "sim808_gprs_get_ip")) {
                         gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
                     } else {
@@ -266,13 +266,15 @@ void gprs_state_machine_run(void) {
 
         case ENVIAR_DATOS: 
             printf("ESTADO MÁQUINA GPRS: Envio de datos.-------------------------------------\n");
-            if (sim808_check_ppp_status()==6) {  
-                sim808_gprs_send_data(buffer_salida);
-                current_state = CONFIRMAR_ENVIO;
-            } else {
-                printf("Error al conectar al GPRS.\n");
+            //if (sim808_check_ppp_status()==6) {  
+                if(sim808_gprs_send_data(buffer_salida)){
+                    
+                    last_send_successful=true;
+                    current_state = CONFIRMAR_ENVIO;
+                }else {
+                printf("Error en el envío.\n");
                 current_state = COMPROBACION_RED;
-            }
+                }
             break;
         
 
@@ -281,7 +283,7 @@ void gprs_state_machine_run(void) {
             if (last_send_successful) {
                 printf("Datos enviados correctamente.\n");
                 retry_count = 0;
-                processed_index += GSM_BATCH_SIZE; // Avanzamos 20 posiciones
+                processed_index += GSM_BATCH_SIZE; // Avanzamos X posiciones
                 current_state = ESPERA;
 
                 // Si llegamos al límite, reiniciamos el índice
