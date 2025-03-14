@@ -8,8 +8,8 @@
 #include <stdbool.h>
 
 // Configuración
-#define GSM_BATCH_SIZE 5
-#define GSM_MAX_RETRIES 5
+#define GSM_BATCH_SIZE 1
+#define GSM_MAX_RETRIES 3
 #define MEMORY_SIZE 100
 #define MAX_ATTEMPTS 3
 
@@ -38,8 +38,8 @@ void gprs_state_machine_init(void) {
 
 // Función de reintento genérica
 int retry_function(int (*func)(void), const char *func_name) {
-    int retry_delay = 4000; // 4 segundos de retraso inicial
-    const int max_timeout = 12000; // 20 segundos de tiempo máximo
+    int retry_delay = 2000; // 2 segundos de retraso inicial
+    const int max_timeout = 8000; // 8 segundos de tiempo máximo
     int total_delay = 0;
 
     while (total_delay <= max_timeout) {
@@ -51,9 +51,9 @@ int retry_function(int (*func)(void), const char *func_name) {
             printf("FAILED: %s. Retrying in %d seconds...\n", func_name, retry_delay / 1000);
             total_delay += retry_delay;
             vTaskDelay(pdMS_TO_TICKS(retry_delay));
-            retry_delay += 4000; // Incrementar el retraso en 4 segundos
-            if (retry_delay > 20000) {
-                retry_delay = 20000; // Mantener el retraso máximo en 20 segundos
+            retry_delay += 2000; // Incrementar el retraso en 4 segundos
+            if (retry_delay > 8000) {
+                retry_delay = 8000; // Mantener el retraso máximo en 20 segundos
             }
         }
     }
@@ -107,16 +107,16 @@ void gprs_state_machine_run(void) {
                   break;
 
                 case GPRS_SUBSTATE_APN:
-                    if (sim808_check_apn_present()){
-                        gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
+                    //if (sim808_check_apn_present()){
+                     //   gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
 
-                    }else{
+                    //}else{
                         if (retry_function(sim808_gprs_connect_apn, "sim808_gprs_connect_apn")) {
                           gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
                         } else {
                           gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                         }
-                    }
+                    //}
                     break;
 
                 case GPRS_SUBSTATE_ACTIVATE: 
@@ -264,103 +264,14 @@ void gprs_state_machine_run(void) {
             }
             break;
 
-            case ENVIAR_DATOS: 
-            printf("ESTADO MÁQUINA GPRS: Envío de datos.-------------------------------------\n");
-        
-            // Verificar el estado PPP antes de proceder
-            if (sim808_check_ppp_status() == 6){ 
-                if (sim808_gprs_send_data(buffer_salida)){
-                    current_state = CONFIRMAR_ENVIO;
-                }else{
-                
-                  int result = 0; // Variable para almacenar los resultados de cada estado
-                  while (http_state != HTTP_STATE_FINISHED && http_state != HTTP_STATE_ERROR) {
-                    switch (http_state) {
-                        case HTTP_STATE_INIT:
-                            printf("Estado: Inicializando HTTP...\n");
-                            result = sim808_http_init();
-                            http_state = (result == 1) ? HTTP_STATE_ENABLE : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_ENABLE:
-                            printf("Estado: Habilitando HTTPS...\n");
-                            result = sim808_http_enable_https();
-                            http_state = (result == 1) ? HTTP_STATE_URL_SETUP : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_URL_SETUP:
-                            printf("Estado: Configurando URL...\n");
-                            result = sim808_http_set_url();
-                            http_state = (result == 1) ? HTTP_STATE_CONTENT_TYPE : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_CONTENT_TYPE:
-                            printf("Estado: Configurando tipo de contenido...\n");
-                            result = sim808_http_set_content_type();
-                            http_state = (result == 1) ? HTTP_STATE_PREPARE_REQUEST : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_PREPARE_REQUEST:
-                            printf("Estado: Preparando solicitud HTTP...\n");
-                            result = sim808_http_prepare_request(buffer_salida);
-                            http_state = (result == 1) ? HTTP_STATE_SEND_DATA : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_SEND_DATA:
-                            printf("Estado: Enviando datos HTTP...\n");
-                            result = sim808_http_send_data(buffer_salida);
-                            http_state = (result == 1) ? HTTP_STATE_POST_ACTION : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_POST_ACTION:
-                            printf("Estado: Ejecutando acción POST...\n");
-                            result = sim808_http_execute_post();
-                            http_state = (result == 1) ? HTTP_STATE_READ_RESPONSE : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_READ_RESPONSE:
-                            printf("Estado: Leyendo respuesta del servidor...\n");
-                            result = sim808_http_read_response();
-                            http_state = (result == 1) ? HTTP_STATE_HTTP_TERMINATE : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_HTTP_TERMINATE:
-                            printf("Estado: Finalizando conexión HTTP...\n");
-                            result = sim808_http_terminate();
-                            http_state = (result == 1) ? HTTP_STATE_FINISHED : HTTP_STATE_ERROR;
-                            break;
-        
-                        case HTTP_STATE_FINISHED:
-                            printf("Estado: Envío de datos finalizado correctamente.\n");
-                            break;
-        
-                        case HTTP_STATE_ERROR:
-                            printf("Error en la máquina de estados HTTP. Reiniciando proceso.\n");
-                            break;
-        
-                        default:
-                            printf("Estado desconocido en la máquina de estados HTTP.\n");
-                            break;
-                      }
-                    }
-                
-        
-                 // Transición de estado en función del resultado
-                 if (http_state == HTTP_STATE_FINISHED) {
-                    printf("Datos enviados con éxito. Transición al estado CONFIRMAR_ENVIO.\n");
-                    current_state = CONFIRMAR_ENVIO; // Cambiar al siguiente estado
-                    http_state=HTTP_STATE_INIT;
-                 } else {
-                    printf("Error durante el envío de datos. Reintentar desde COMPROBACION_RED.\n");
-                    current_state = COMPROBACION_RED; // Cambiar al estado de comprobación
-                    http_state=HTTP_STATE_INIT;
-                 }
-                }
+        case ENVIAR_DATOS: 
+            printf("ESTADO MÁQUINA GPRS: Envio de datos.-------------------------------------\n");
+            if (sim808_check_ppp_status()==6) {  
+                sim808_gprs_send_data(buffer_salida);
+                current_state = CONFIRMAR_ENVIO;
             } else {
-                // Si no hay conexión PPP válida
                 printf("Error al conectar al GPRS.\n");
-                current_state = COMPROBACION_RED; // Cambiar al estado de comprobación
-                http_state=HTTP_STATE_INIT;
+                current_state = COMPROBACION_RED;
             }
             break;
         

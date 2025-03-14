@@ -1,8 +1,8 @@
 #include "gsm_data.h"
 #include <stdio.h>
 
-#define GSM_BATCH_SIZE 5
-#define GSM_MAX_RETRIES 5
+#define GSM_BATCH_SIZE 1
+#define GSM_MAX_RETRIES 1
 
 int gsm_prepare_batch(char *buffer, size_t buffer_size, int start_index) {
     DataEntry *shipping_buffer = data_storage_get_all(); // Obtén los datos

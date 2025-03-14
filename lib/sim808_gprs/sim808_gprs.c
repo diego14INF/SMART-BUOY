@@ -259,16 +259,18 @@ int sim808_gprs_tcp_connect(void) {
 //-----------------------------ENVIO TCP/IP SOCKETS (Version Http) ------------------------------------
 int sim808_gprs_send_data(char *shipping_buffer) {
     char response[256];
-    char http_request[512];
+    char http_request[1024];
 
     // Preparar la solicitud HTTP
     snprintf(http_request, sizeof(http_request),
-             "POST /upload-data HTTP/1.1\r\n"
+             "POST / HTTP/1.1\r\n"
              "Host:\"" GPRS_SERVER "\":%d\r\n"
              "Content-Type: application/json\r\n"
              "Content-Length: %d\r\n"
+             "User-Agent: SIM808\r\n"
              "\r\n"
-             "%s",
+             "%s"
+             "\r\n",
              HTTP_PORT, strlen(shipping_buffer), shipping_buffer);
 
     // Iniciar la transmisión de datos
@@ -276,6 +278,7 @@ int sim808_gprs_send_data(char *shipping_buffer) {
 
     // Esperar el símbolo '>' indicando que el módulo está listo para enviar datos
     sim808_wait_for_response(response, sizeof(response), 10000);
+    
     if (strstr(response, ">")) {
         printf("El módulo está listo para enviar datos.\n");
 
@@ -299,6 +302,15 @@ int sim808_gprs_send_data(char *shipping_buffer) {
         printf("Error: El módulo no está listo para enviar datos. Respuesta: %s\n", response);
         return 0;
     }
+}
+
+
+// Desconectar la sesión GPRS
+int sim808_gprs_disconnect(void) {
+    char response[256];
+    sim808_send_command("AT+CIPSHUT\r\n");  // Cerrar la conexión GPRS
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
+    return 1;
 }
 
 
@@ -426,11 +438,3 @@ int sim808_http_terminate(void) {
     return 1; // Éxito
 }
 
-
-// Desconectar la sesión GPRS
-int sim808_gprs_disconnect(void) {
-    char response[256];
-    sim808_send_command("AT+CIPSHUT\r\n");  // Cerrar la conexión GPRS
-    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
-    return 1;
-}

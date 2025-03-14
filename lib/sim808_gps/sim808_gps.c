@@ -101,7 +101,7 @@ int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_
         }
 
         // Si no se encontró una respuesta válida
-        printf("Respuesta inesperada del SIM808: %s\n", buffer);
+        //printf("Respuesta inesperada del SIM808: %s\n", buffer);
         return -3; // Código para respuesta desconocida
     } else {
         printf("Timeout esperando respuesta del SIM808.\n");
@@ -161,6 +161,13 @@ int sim808_init() {
     // Crear la tarea de manejo de eventos UART
     xTaskCreate(uart_event_task, "uart_event_task", 4096, NULL, 5, NULL);
 
+    
+    response_semaphore = xSemaphoreCreateBinary();
+    if (response_semaphore == NULL) {
+       printf("Error al crear el semáforo de respuesta.\n");
+       return 0; // Error en la inicialización
+    }
+
     sim808_send_command("AT\r\n");
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
 
@@ -171,12 +178,8 @@ int sim808_init() {
     sim808_send_command("AT+CFUN=1\r\n");
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
 
-    response_semaphore = xSemaphoreCreateBinary();
-    if (response_semaphore == NULL) {
-       printf("Error al crear el semáforo de respuesta.\n");
-       return 0; // Error en la inicialización
-    }
     return 1;
+
 
 }
 

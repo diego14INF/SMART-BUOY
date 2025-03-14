@@ -7,10 +7,10 @@
 #define APN "telefonica.es"          // APN de tu proveedor de servicios móviles
 #define GPRS_USER "telefonica"   // Usuario (si es necesario)
 #define GPRS_PASS "8495"   // Contraseña (si es necesario)
-#define GPRS_SERVER "https://gps-data-server.glitch.me"  // IP o URL del servidor al que enviar los datos
-#define HTTP_PORT 8080           // Puerto
+#define GPRS_SERVER "gps-data-server.glitch.me"  // IP o URL del servidor al que enviar los datos
+#define HTTP_PORT 80           // Puerto
 #define HTTPS_PORT 443
-#define GLITCH_PORT 3000
+#define GLITCH_PORT 80
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -18,14 +18,14 @@
 //Comandos AT de comprobación y control
 #define AT_GPRS_CTRL_SIGNAL "AT+CSQ\r\n"    //Para comprobar valores de la señal gsm, los valores deben entre 10 y 30 son buenos
 #define AT_GPRS_CTRL_GPRS_ATTACHMENT "AT+CGATT?\r\n"      // Comprobar estado de la conexión GPRS
-#define AT_GPRS_CTRL_IP "AT+CIFSR?\r\n" //Devuelve IP
+#define AT_GPRS_CTRL_IP "AT+CIFSR\r\n" //Devuelve IP
 
 
 // Comandos AT para conexión TCP (En orden)
 #define AT_GPRS_INIT "AT+CGATT=1\r\n"       // Conectar a la red GPRS
 #define AT_GPRS_APN "AT+CSTT=\"" APN "\"\r\n" // Configuración APN
 #define AT_GPRS_WIRELESS_CONNECT "AT+CIICR\r\n" //Iniciar conexion inalambrica
-#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(GLITCH_PORT) "\"\r\n" // Conectar a servidor TCP
+#define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(HTTP_PORT) "\"\r\n" // Conectar a servidor TCP
 
 // Definiciones de comandos AT HTTP
 #define CMD_HTTPINIT "AT+HTTPINIT\r\n"
@@ -58,7 +58,7 @@ int sim808_gprs_establish_ppp();
 
 //Funciones de comprobacion
 int sim808_check_network_status();
-int sim808_check_gprs_attachment(void)
+int sim808_check_gprs_attachment(void);
 int sim808_check_apn_present(void);
 int sim808_check_ppp_status(void);
 int sim808_gprs_get_ip();
