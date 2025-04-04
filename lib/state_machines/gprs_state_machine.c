@@ -86,7 +86,7 @@ void gprs_state_machine_run(void) {
         case PREPARAR_RED:
             printf("ESTADO MÁQUINA GPRS: Preparación de red de datos.------\n");
             switch (gprs_connection_substate) {
-                case GPRS_SUBSTATE_SIM: //OK
+                case GPRS_SUBSTATE_SIM:
                     if (retry_function(sim808_config_sim, "sim808_config_sim")) {
                         gprs_connection_substate = GPRS_SUBSTATE_INIT;
                     } else {
@@ -159,23 +159,27 @@ void gprs_state_machine_run(void) {
 
                 case GPRS_SUBSTATE_ERROR:
                     printf("Error en la conexión GPRS. Intentando reiniciar...............\n");
-                    sim808_gprs_disconnect();
-                    sim808_full_reset();
-                    init_timer(10); // Iniciar temporizador de 10 segundos
+                    network_check_attempts++;
+                    if (network_check_attempts < 3) {
+                    sim808_gprs_disconnect(); //Matamos la conexión GPRS
+                    init_timer(5); // Iniciar temporizador de 5 segundos
                     gprs_connection_substate = GPRS_SUBSTATE_RESET_WAIT; // Transición al subestado de espera
+                    } else {
+                        current_state = ERROR;
+                        network_check_attempts=0;
+                    }
                     break;
         
                 case GPRS_SUBSTATE_RESET_WAIT:
                     if (is_timer_finished()) {
                         timer_finished = false; // Resetear la bandera del temporizador
                         gprs_connection_substate = GPRS_SUBSTATE_SIM; // Volver al subestado inicial
-                        printf("Reinicio completo. Continuando con la conexión.\n");
+                        printf("Reinicio de enlace. Conectando de nuevo.\n");
                     } else {
-                        printf("Esperando %d segundos para el reinicio...\n", 10);
+                        printf("Esperando %d segundos para el reinicio...\n", 5);
                         vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 1 segundo y verificar de nuevo
                     }
                     break;
-        
 
                 case GPRS_SUBSTATE_CONNECTED:
                     current_state = ENVIAR_DATOS; // Transición al siguiente estado
@@ -305,9 +309,23 @@ void gprs_state_machine_run(void) {
 
         case ERROR: {
             printf("ESTADO MÁQUINA GPRS: Error. Reiniciando...-----\n");
+            sim808_full_reset();
+            init_timer(10); // Iniciar temporizador de 10 segundos
             retry_count = 0;
             last_send_successful = false;
-            current_state = ESPERA;
+            current_state = STATE_WAIT_TIMER;
+            break;
+        }
+
+        case STATE_WAIT_TIMER:{
+            if (is_timer_finished()) {
+                timer_finished = false; // Resetear la bandera del temporizador
+                current_state = ESPERA; // Volver al subestado inicial
+                printf("Reinicio completo.\n");
+            } else {
+                printf("Esperando %d segundos para el reinicio...\n", 10);
+                vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 1 segundo y verificar de nuevo
+            }
             break;
         }
     }

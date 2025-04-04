@@ -70,21 +70,9 @@ void gps_state_machine_run(void) {
             } else {
                 printf("GPS no está OK. Intentando reiniciar...\n");
                 gps_retry_count++;
-                if (gps_retry_count <= MAX_GPS_RETRIES) {
-                    // Cambiar el tipo de reinicio en función del estado
-                    if (gps_mode % 4 == 0) {
-                        reset_type=GPS_COLD_RESET;
-                    } else if (gps_mode % 3 == 0){
-                        reset_type=GPS_WARM_RESET;
-                    } else if (gps_mode % 2 == 0){
-                        reset_type=GPS_HOT_RESET;
-                    }
-                    sim808_gps_reset_mode(reset_type);
-                    start_gps_reset_timer(reset_type); // Inicia el temporizador
-                    current_state=STATE_WAIT_TIMER;
-                } else {
-                    printf("Error crítico: no se pudo verificar el GPS tras %d intentos.\n", MAX_GPS_RETRIES);
-                    current_state = STATE_ERROR; //Ahora digo que pase a adquisicion de datos porque no tengo respuesta buena del estado del gps
+                if (gps_retry_count >= MAX_GPS_RETRIES) {
+                    current_state=STATE_ERROR;
+                
                 }
             }
             break;
@@ -122,7 +110,7 @@ void gps_state_machine_run(void) {
            printf("ESTADO MÁQUINA GPS: En espera módulo GPS------\n");
            if (is_timer_finished()) {
               printf("----Temporizador completado.----\n");
-              current_state = STATE_ACQUIRE_DATA; // Regresa a verificar el GPS(Ahora puse ir al estado de recogida de datos porque no funciona el comando de verificar estado)
+              current_state = STATE_VERIFY_GPS;; // Regresa a verificar el GPS
             } else {
                vTaskDelay(10 / portTICK_PERIOD_MS); // Da tiempo al sistema operativo
             }
@@ -130,9 +118,18 @@ void gps_state_machine_run(void) {
         
 
         case STATE_ERROR:
-            printf("ESTADO MÁQUINA GPS: ERROR. Revise el sistema.------\n");
-            // Aquí se puede añadir lógica para reiniciar la máquina o notificar el error
-            current_state = STATE_VERIFY_GPS;
+            printf("ESTADO MÁQUINA GPS: ERROR. Reiniciando el sistema.------\n");
+            // Cambiar el tipo de reinicio en función del estado
+            if (gps_mode % 4 == 0) {
+                reset_type=GPS_COLD_RESET;
+            } else if (gps_mode % 3 == 0){
+                reset_type=GPS_WARM_RESET;
+            } else if (gps_mode % 2 == 0){
+                reset_type=GPS_HOT_RESET;
+            }
+            sim808_gps_reset_mode(reset_type);
+            start_gps_reset_timer(reset_type); // Inicia el temporizador
+            current_state=STATE_WAIT_TIMER;
             break;
 
         default:
