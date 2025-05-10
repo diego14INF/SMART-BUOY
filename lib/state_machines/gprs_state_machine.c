@@ -8,14 +8,13 @@
 #include <stdbool.h>
 
 // Configuración
-#define GSM_BATCH_SIZE 5
+#define GSM_BATCH_SIZE 1
 #define GSM_MAX_RETRIES 3
 #define MEMORY_SIZE 100
-#define MAX_ATTEMPTS 3
+#define MAX_ATTEMPTS 2
 
 static State current_state;
 static GPRSConnectionSubstate gprs_connection_substate;
-static HTTPState http_state;
 
 static int retry_count;
 static int processed_index; // Índice del último registro procesado
@@ -29,7 +28,6 @@ static int network_check_attempts;
 void gprs_state_machine_init(void) {
  current_state = ESPERA;
  gprs_connection_substate = GPRS_SUBSTATE_SIM;
- http_state = HTTP_STATE_INIT; // Comenzar en el estado inicial
 //static int retry_count = 0;
 //static int processed_index = 0; // Índice del último registro procesado
 //static bool last_send_successful = true; // Indica si el último envío fue exitoso
@@ -95,28 +93,22 @@ void gprs_state_machine_run(void) {
                     break;
 
                 case GPRS_SUBSTATE_INIT:
-                   if (sim808_check_gprs_attachment()){
-                        gprs_connection_substate = GPRS_SUBSTATE_APN;
-                   }else{  
                       if (retry_function(sim808_gprs_connect_init, "sim808_gprs_connect_init")) {
                           gprs_connection_substate = GPRS_SUBSTATE_APN;
                       } else {
                           gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                       }
-                   }
+                   
                   break;
 
                 case GPRS_SUBSTATE_APN:
-                    //if (sim808_check_apn_present()){
-                     //   gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
-
-                    //}else{
+                
                         if (retry_function(sim808_gprs_connect_apn, "sim808_gprs_connect_apn")) {
-                          gprs_connection_substate = GPRS_SUBSTATE_ACTIVATE;
+                          gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
                         } else {
                           gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                         }
-                    //}
+
                     break;
 
                 case GPRS_SUBSTATE_ACTIVATE: 
@@ -124,19 +116,6 @@ void gprs_state_machine_run(void) {
                         gprs_connection_substate = GPRS_SUBSTATE_IP;
                     } else {
                         gprs_connection_substate = GPRS_SUBSTATE_ERROR;
-                    }
-                    break;
-
-                case GPRS_SUBSTATE_PPP: //******NO ES NECESARIO PARA CONEXION TCP */
-                    if (sim808_check_ppp_status()==6){  
-                       gprs_connection_substate = GPRS_SUBSTATE_CONNECTED;
-
-                    }else{
-                       if (retry_function(sim808_gprs_establish_ppp, "sim808_gprs_establish_ppp")) {
-                           gprs_connection_substate = GPRS_SUBSTATE_TCP_CONNECT;
-                        } else {
-                            gprs_connection_substate = GPRS_SUBSTATE_ERROR;
-                        }
                     }
                     break;
 
@@ -150,7 +129,7 @@ void gprs_state_machine_run(void) {
 
                 case GPRS_SUBSTATE_TCP_CONNECT:
                        if (retry_function(sim808_gprs_tcp_connect, "sim808_gprs_tcp_connect")) {
-                           gprs_connection_substate = GPRS_SUBSTATE_CONNECTED;
+                           current_state=ENVIAR_DATOS;
                         } else {
                            gprs_connection_substate = GPRS_SUBSTATE_ERROR;
                         }
@@ -179,11 +158,6 @@ void gprs_state_machine_run(void) {
                         printf("Esperando %d segundos para el reinicio...\n", 5);
                         vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 1 segundo y verificar de nuevo
                     }
-                    break;
-
-                case GPRS_SUBSTATE_CONNECTED:
-                    current_state = ENVIAR_DATOS; // Transición al siguiente estado
-                    //gprs_connection_substate = GPRS_SUBSTATE_SIM;
                     break;
             }
             break;
@@ -222,7 +196,7 @@ void gprs_state_machine_run(void) {
                 case 4: // IP GPRSACT
                     printf("Estado: IP GPRSACT. Contexto PDP activado.\n");
                     current_state = PREPARAR_RED;
-                    gprs_connection_substate = GPRS_SUBSTATE_PPP;
+                    gprs_connection_substate = GPRS_SUBSTATE_IP;
                     break;
 
                 case 5: // IP STATUS
@@ -270,63 +244,44 @@ void gprs_state_machine_run(void) {
 
         case ENVIAR_DATOS: 
             printf("ESTADO MÁQUINA GPRS: Envio de datos.-------------------------------------\n");
-            //if (sim808_check_ppp_status()==6) {  
                 if(sim808_gprs_send_data(buffer_salida)){
-                    
-                    last_send_successful=true;
-                    current_state = CONFIRMAR_ENVIO;
+                    retry_count = 0;
+                    processed_index += GSM_BATCH_SIZE; // Avanzamos X posiciones
+                    // Si llegamos al límite, reiniciamos el índice
+                    if (processed_index >= MEMORY_SIZE) {
+                       processed_index = MEMORY_SIZE - GSM_BATCH_SIZE;
+                    }
+                    current_state = ESPERA;      
                 }else {
-                printf("Error en el envío.\n");
-                current_state = COMPROBACION_RED;
+                    printf("Error en el envío. Reintentando...\n");
+                    retry_count++;
+                    if (retry_count >= GSM_MAX_RETRIES) {
+                        printf("Máximo de reintentos alcanzado. Abortando envío.\n");
+                        current_state = ERROR;
+                    } else {
+                        current_state = COMPROBACION_RED;
+                    }
                 }
             break;
-        
+    
+    
 
-        case CONFIRMAR_ENVIO: {
-            printf("ESTADO MÁQUINA GPRS: Confirmanción de envio------------------------------\n");
-            if (last_send_successful) {
-                printf("Datos enviados correctamente.\n");
-                retry_count = 0;
-                processed_index += GSM_BATCH_SIZE; // Avanzamos X posiciones
-                current_state = ESPERA;
-
-                // Si llegamos al límite, reiniciamos el índice
-                if (processed_index >= MEMORY_SIZE) {
-                    processed_index = MEMORY_SIZE - GSM_BATCH_SIZE;
-                }
-            } else {
-                printf("Error en el envío. Reintentando...\n");
-                retry_count++;
-                if (retry_count >= GSM_MAX_RETRIES) {
-                    printf("Máximo de reintentos alcanzado. Abortando envío.\n");
-                    current_state = ERROR;
-                } else {
-                    current_state = ENVIAR_DATOS;
-                }
-            }
-            break;
-        }
-
-        case ERROR: {
+        case ERROR: 
             printf("ESTADO MÁQUINA GPRS: Error. Reiniciando...-----\n");
             sim808_full_reset();
             init_timer(10); // Iniciar temporizador de 10 segundos
             retry_count = 0;
-            last_send_successful = false;
-            current_state = STATE_WAIT_TIMER;
+            current_state = ESPERA_TEMPORIZADOR;
             break;
-        }
+        
 
-        case STATE_WAIT_TIMER:{
+        case ESPERA_TEMPORIZADOR:
             if (is_timer_finished()) {
                 timer_finished = false; // Resetear la bandera del temporizador
                 current_state = ESPERA; // Volver al subestado inicial
                 printf("Reinicio completo.\n");
-            } else {
-                printf("Esperando %d segundos para el reinicio...\n", 10);
-                vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 1 segundo y verificar de nuevo
-            }
+            } 
             break;
-        }
+        
     }
 }

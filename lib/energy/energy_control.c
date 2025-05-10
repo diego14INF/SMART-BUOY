@@ -3,6 +3,7 @@
 #include "driver/gpio.h"
 #include "driver/adc.h"
 #include "esp_pm.h"
+#include "sim808_gps.h"
 
 #define UMBRAL_BATERIA_ZUMBADOR 60
 #define UMBRAL_BATERIA_BALIZA 40
@@ -19,7 +20,7 @@ static bool bajo_consumo = false;
 
 void energia_init(void) {
     // Inicialización de sensores INA219
-    ina219_init();
+    //ina219_init();
 
     // Configuración del ADC para la batería
     adc1_config_width(ADC_WIDTH);

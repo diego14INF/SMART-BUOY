@@ -4,7 +4,7 @@ static gptimer_handle_t gptimer = NULL; // Manejador del temporizador, lo inicia
 static volatile bool timer_finished = false; // Bandera para indicar que el temporizador alcanzó 0 ( Volatile hace que el compilador no optimice el acesso a esta variable, que puede cambiar repentinamente dentro de una interrupcion)
 
 // Callback de interrupción del temporizador
-bool timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *event_data, void *user_ctx) {
+bool timer_callback(gptimer_handle_t gptimer, const gptimer_alarm_event_data_t *event_data, void *user_ctx) {
     // Marca el temporizador como finalizado
     timer_finished = true;
     //printf("¡Temporizador alcanzó 0!\n");
@@ -33,7 +33,7 @@ void init_timer(int timer_interval_sec) {
 
     // Configura la alarma
     gptimer_alarm_config_t alarm_config = {
-        //.reload_count = timer_interval_sec * 1000000, // Valor de recarga en microsegundos
+        .reload_count = timer_interval_sec * 1000000, // Valor de recarga en microsegundos
         .alarm_count = 0,                            // Alarma al llegar a 0
         .flags.auto_reload_on_alarm = false           // Habilitar auto-reload
     };

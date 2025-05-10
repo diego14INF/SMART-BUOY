@@ -3,9 +3,6 @@
 #define BLUETOOTH_LINK_H
 
 #include "esp_err.h"
-#include "esp_bt.h"
-#include "esp_gap_bt_api.h"
-#include "esp_spp_api.h"
 
 #define BLUETOOTH_DEVICE_NAME "BOYA_SMART"
 #define BUTTON_GPIO 0 // Ajustar al GPIO correcto del botón
@@ -13,7 +10,7 @@
 #define SERVER_URL "gps-data-server.glitch.me"
 
 
-bluetoothesp_err_t bluetooth_init(void);
+//bluetoothesp_err_t bluetooth_init(void);
 void check_button_press(void);
 void scan_nearby_buoys(void);
 void start_pairing(const char *remote_id);

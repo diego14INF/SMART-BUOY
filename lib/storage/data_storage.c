@@ -12,7 +12,7 @@ void data_storage_init() {
 int data_storage_save(GPSData *data) {
      if (storage_count < STORAGE_SIZE) {
         // Si hay espacio, añade directamente
-        storage[storage_count].timestamp = time(NULL);
+        storage[storage_count].mmsi = MMSI_UNICO;
         storage[storage_count].gps_data = *data;
         storage_count++;
     } else {
@@ -21,7 +21,7 @@ int data_storage_save(GPSData *data) {
             storage[i - 1] = storage[i];
         }
         // Añade el nuevo dato al final
-        storage[STORAGE_SIZE - 1].timestamp = time(NULL);
+        storage[STORAGE_SIZE - 1].mmsi = MMSI_UNICO;
         storage[STORAGE_SIZE - 1].gps_data = *data;
     }
     return 1;

@@ -12,12 +12,9 @@
 #define BAUD_RATE 115200
 #define GPS_PWR_ON_COMMAND "AT+CGNSPWR=1\r\n"
 #define GPS_INF_COMMAND "AT+CGNSINF\r\n"
-#define BATTERY_COMMAND "AT+CBC\r\n"
 #define GPS_RESET_MODE_COMMAND "AT+CGPSRST=%d\r\n" //0:hot reset, 1:warm reset, 2:cold reset
-#define GPS_STATUS_COMMAND "AT+CGPSSTATUS?\r\n" 
-#define BUF_SIZE 1024
-#define SMS_CONFIG_COMAND "AT+CMGF=1\r\n" // Configura para enviar SMS
-#define TLF_CONFIG_COMMAND "AT+CMGS=\"+123456789\"\r\n" //Configura el número de destino
+#define BATTERY_COMMAND "AT+CBC\r\n"
+#define BUF_SIZE 2048
 static char sim808_response[BUF_SIZE]; // Buffer global para almacenar la respuesta
 static bool response_ready = false; // Bandera para indicar que hay una respuesta lista
 static SemaphoreHandle_t response_semaphore; // Semáforo para sincronización
@@ -47,12 +44,12 @@ static void uart_event_task(void *pvParameters) {
                             } else {
                                 response_index = 0; // Reiniciar en caso de desbordamiento
                             }
-    
+                             //close\r\n\r\n
                             // Verificar si la respuesta está completa
                             if (strstr(sim808_response, "\nERROR") ||
-                                strstr(sim808_response, ">") || strstr(sim808_response, "\nSEND OK") ||
+                                strstr(sim808_response, ">") || strstr(sim808_response, "0\r\n\r\n") ||
                                 strstr(sim808_response, "DOWNLOAD") || strstr(sim808_response, "+CME ERROR") ||
-                                strstr(sim808_response, "\r\n\r\n0\r\n\r\n") || strstr(sim808_response, ".")) {
+                                strstr(sim808_response, "\r\n\r\n0\r\n\r\n")) {
                                 response_ready = true;
                                 response_index = 0;
                                 xSemaphoreGive(response_semaphore);
@@ -85,16 +82,12 @@ static void uart_event_task(void *pvParameters) {
 
     
 int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_ms) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        //vTaskDelay(pdMS_TO_TICKS(1000));
         if (xSemaphoreTake(response_semaphore, pdMS_TO_TICKS(timeout_ms)) == pdTRUE) {
             strncpy(buffer, sim808_response, buffer_size - 1);
             buffer[buffer_size - 1] = '\0';
             response_ready = false;
     
-            if (strstr(buffer, "ERROR") || strstr(buffer, "+CME ERROR")) {
-                printf("SIM808 Error: %s\n", buffer);
-                return -1;
-            }
             // Verificar si contiene una dirección IP
           if (strstr(buffer, ".") != NULL) {
             // Validación básica de formato de dirección IP
@@ -119,6 +112,7 @@ int sim808_wait_for_response(char *buffer, size_t buffer_size, uint32_t timeout_
 
 void sim808_send_command(const char *command) {
     uart_write_bytes(UART_NUM, command, strlen(command));
+    uart_flush(UART_NUM);
     printf("Enviando comando al SIM808: %s\n", command);
 }
 
@@ -207,8 +201,7 @@ int sim808_gps_power_on(){   // Enciende el GPS
 
 void sim808_gps_reset_mode(int mode) {
     char command[16];
-    //EScribo los datos formateados (mode) en la cadena de caracteres sin exceder el tamaño del buffer (command)
-    snprintf(command, sizeof(command), GPS_RESET_MODE_COMMAND, mode); 
+    snprintf(command, sizeof(command), GPS_RESET_MODE_COMMAND, mode); // Formateo correcto con mode
     sim808_send_command(command);
     sim808_wait_for_response(command, sizeof(command), 10000); // Espera hasta 5s
     printf("Respuesta de GPS reset: %s\n", command);

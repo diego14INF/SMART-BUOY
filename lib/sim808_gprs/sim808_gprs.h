@@ -27,18 +27,10 @@
 #define AT_GPRS_WIRELESS_CONNECT "AT+CIICR\r\n" //Iniciar conexion inalambrica
 #define AT_TCP_SOCKET "AT+CIPSTART=\"TCP\",\"" GPRS_SERVER "\",\"" TOSTRING(HTTP_PORT) "\"\r\n" // Conectar a servidor TCP
 
-// Definiciones de comandos AT HTTP
-#define CMD_HTTPINIT "AT+HTTPINIT\r\n"
-#define CMD_HTTPSSL "AT+HTTPSSL=1\r\n"
-#define CMD_HTTPPARA_URL "AT+HTTPPARA=\"URL\",\"%s\"\r\n"
-#define CMD_HTTPPARA_CONTENT "AT+HTTPPARA=\"CONTENT\",\"application/json\"\r\n"
-#define CMD_HTTPDATA "AT+HTTPDATA=%d,10000\r\n"
-#define CMD_HTTPACTION "AT+HTTPACTION=1\r\n"
-#define CMD_HTTPREAD "AT+HTTPREAD\r\n"
-#define CMD_HTTPTERM "AT+HTTPTERM\r\n"
+//Comandos para comunicación SMS/TLF
+#define SMS_CONFIG_COMAND "AT+CMGF=1\r\n" // Configura para enviar SMS
+#define TLF_CONFIG_COMMAND "AT+CMGS=\"+123456789\"\r\n" //Configura el número de destino
 
-//NO NECESARIO
-#define AT_PDP_CONNECT "AT+CGACT=1,1\r\n"       // Activar contexto PDP
 
 #define RESPONSE_BUFFER_SIZE 512
 #define RESPONSE_TIMEOUT_MS 5000
@@ -68,15 +60,5 @@ int sim808_check_functionality_status(void);
 int sim808_check_signal_strength(void);
 
 //int sim808_gprs_https_request(char *shipping_buffer);
-
-int sim808_http_init(void);
-int sim808_http_enable_https(void);
-int sim808_http_set_url(void);
-int sim808_http_set_content_type(void);
-int sim808_http_prepare_request(char *shipping_buffer);
-int sim808_http_send_data(char *shipping_buffer);
-int sim808_http_execute_post(void);
-int sim808_http_read_response(void);
-int sim808_http_terminate(void);
 
 #endif // SIM808_GPRS_H

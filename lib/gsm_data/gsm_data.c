@@ -17,9 +17,9 @@ int gsm_prepare_batch(char *buffer, size_t buffer_size, int start_index) {
     for (int i = start_index; i < start_index + GSM_BATCH_SIZE && i < count; i++) {
         // Generar un objeto JSON para cada entrada de datos
         offset += snprintf(buffer + offset, buffer_size - offset,
-                           "{\"time_esp32\": %lld, \"time_sim808\": %.6f, \"latitude\": %.6f, \"longitude\": %.6f, "
+                           "{\"mmsi\": %lli, \"time_sim808\": %.6f, \"latitude\": %.6f, \"longitude\": %.6f, "
                            "\"altitude\": %.2f, \"speed\": %.2f, \"course\": %.2f, \"battery_voltage\": %d}",
-                           shipping_buffer[i].timestamp, shipping_buffer[i].gps_data.time,
+                           shipping_buffer[i].mmsi, shipping_buffer[i].gps_data.time,
                            shipping_buffer[i].gps_data.latitude, shipping_buffer[i].gps_data.longitude,
                            shipping_buffer[i].gps_data.altitude, shipping_buffer[i].gps_data.speed,
                            shipping_buffer[i].gps_data.course, shipping_buffer[i].gps_data.battery_voltage);

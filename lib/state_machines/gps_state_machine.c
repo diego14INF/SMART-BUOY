@@ -16,7 +16,7 @@
 #define TIMER_COLD_RESET 5
 #define TIMER_WARM_RESET 3
 #define TIMER_HOT_RESET 2
-#define TIMER_TEN_SECONDS 10
+#define TIMER_TEN_SECONDS 10000
 
 // Estado actual y variables de control
 static GPSState current_state = STATE_VERIFY_GPS;
@@ -112,7 +112,7 @@ void gps_state_machine_run(void) {
               printf("----Temporizador completado.----\n");
               current_state = STATE_VERIFY_GPS;; // Regresa a verificar el GPS
             } else {
-               vTaskDelay(10 / portTICK_PERIOD_MS); // Da tiempo al sistema operativo
+               //vTaskDelay(10 / portTICK_PERIOD_MS); // Da tiempo al sistema operativo
             }
             break;
         

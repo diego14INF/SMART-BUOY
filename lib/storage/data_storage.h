@@ -4,9 +4,10 @@
 #include "sim808_gps.h"
 
 #define STORAGE_SIZE 100
+#define MMSI_UNICO 970000001
 
 typedef struct {
-    time_t timestamp;
+    long long int mmsi;
     GPSData gps_data;
 } DataEntry;
 
