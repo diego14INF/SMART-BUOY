@@ -33,7 +33,7 @@ void app_main(void) {
     gprs_state_machine_init();
     peripherals_state_machine_init();
     i2c_master_init();
-    ina219_calibrate(0.02, 3.2);
+    ina219_calibracion(0.02, 3.2);
 
     // Crear el semáforo binario
     sim808_semaphore = xSemaphoreCreateBinary();

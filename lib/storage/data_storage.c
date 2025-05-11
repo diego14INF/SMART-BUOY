@@ -5,6 +5,9 @@
 static DataEntry storage[STORAGE_SIZE];
 static int storage_count = 0;
 
+static DataEntry storage_paired[STORAGE_ENLAZADOS];
+static int storage_count_paired = 0;
+
 void data_storage_init() {
     storage_count = 0;
 }
@@ -24,6 +27,36 @@ int data_storage_save(GPSData *data) {
         storage[STORAGE_SIZE - 1].mmsi = MMSI_UNICO;
         storage[STORAGE_SIZE - 1].gps_data = *data;
     }
+    return 1;
+}
+
+int data_storage_paired_save(long long int mmsi, GPSData *data) {
+    // Buscar si ya existe el MMSI
+    for (int i = 0; i < storage_count_paired; i++) {
+        if (storage_paired[i].mmsi == mmsi) {
+            // Ya existe → actualizar datos
+            storage_paired[i].gps_data = *data;
+            printf("🔁 Datos actualizados para MMSI enlazado: %lli\n", mmsi);
+            return 1;
+        }
+    }
+
+    // Si no existe y hay espacio → añadir nuevo
+    if (storage_count_paired < STORAGE_ENLAZADOS) {
+        storage_paired[storage_count_paired].mmsi = mmsi;
+        storage_paired[storage_count_paired].gps_data = *data;
+        storage_count_paired++;
+        printf("✅ MMSI enlazado nuevo almacenado: %lli\n", mmsi);
+        return 1;
+    }
+
+    // Si está lleno → reemplazar el más antiguo (FIFO)
+    for (int i = 1; i < STORAGE_ENLAZADOS; i++) {
+        storage_paired[i - 1] = storage_paired[i];
+    }
+    storage_paired[STORAGE_ENLAZADOS - 1].mmsi = mmsi;
+    storage_paired[STORAGE_ENLAZADOS - 1].gps_data = *data;
+    printf("⚠️ Almacenamiento enlazado lleno. Reemplazado más antiguo con MMSI: %lld\n", mmsi);
     return 1;
 }
 

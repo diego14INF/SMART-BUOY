@@ -326,6 +326,108 @@ int sim808_gprs_send_data(char *shipping_buffer) {
     }
 }
 
+int sim808_gprs_get_data(char *mmsi_enlazado) {
+    char response[4096];
+    char http_request[1024];
+    char ubicacion_buffer[1024];
+
+    // Preparar la solicitud HTTP
+    snprintf(http_request, sizeof(http_request),
+             "GET /ubicacion/%s HTTP/1.1\r\n"
+             "Host:" GPRS_SERVER ":%d\r\n"
+             "Content-Type: application/json\r\n"
+             "User-Agent: SIM808\r\n"
+             "Connection:close\r\n"
+             "Authorization: Bearer TU_TOKEN\r\n"
+             "\r\n",
+             mmsi_enlazado, HTTP_PORT);
+
+    // Iniciar la transmisión de datos
+    sim808_send_command("AT+CIPSEND\r\n");
+
+    // Esperar el símbolo '>' indicando que el módulo está listo para enviar datos
+    sim808_wait_for_response(response, sizeof(response), 10000);
+    
+    if (strstr(response, ">")) {
+        printf("El módulo está listo para enviar datos.\n");
+
+        // Enviar los datos
+        sim808_send_command(http_request);
+        uart_write_bytes(UART_NUM, "\x1A", 1); // CTRL+Z para enviar y finalizar
+
+        // Verificar el resultado del envío
+        sim808_wait_for_response(response, sizeof(response), 10000); // Esperar hasta 10s
+
+        // Verificar el resultado del envío (esperar "SEND OK")
+        if (strstr(response, "SEND OK")) {
+            printf("SEND OK VÁLIDO. Petición enviada correctamente.\n");
+
+                // Procesar el código de estado HTTP
+                if (strstr(response, "HTTP/1.1 200 OK")) {
+                    // Buscar inicio del JSON (primera llave después del encabezado)
+                    char *json_start = strchr(response, '{');
+                    if (json_start) {
+                       strncpy(ubicacion_buffer, json_start, sizeof(ubicacion_buffer) - 1);
+                       printf("✅ JSON recibido y almacenado:\n%s\n", ubicacion_buffer);
+                     // Extraer datos del JSON (suponiendo campos "latitude", "longitude", "timestamp")
+                      GPSData data;
+                      long long int mmsi_long;
+                      long long int mmsi_enlazado_ll = atoll(mmsi_enlazado);  // Convertir cadena a long long int
+
+                       if (sscanf(json_start,
+                            "{\"mmsi\": %lli, \"time_sim808\": %lf, \"latitude\": %f, \"longitude\": %f, "
+                           "\"altitude\": %f, \"speed\": %f, \"course\": %f, \"battery_voltage\": %d}",
+                           &mmsi_long, &data.time, &data.latitude, &data.longitude,
+                           &data.altitude, &data.speed, &data.course, &data.battery_voltage) == 8) {
+                           if (mmsi_long == mmsi_enlazado_ll) {
+                              data_storage_paired_save(mmsi_long, &data);
+                              printf("✅ Datos válidos y almacenados para MMSI %lli\n", mmsi_long);
+                            } else {
+                                printf("⚠ MMSI en JSON (%lli) no coincide con el esperado (%lli). No se almacenó.\n",
+                                 mmsi_long, mmsi_enlazado_ll);
+                            }
+                        } else {
+                            printf("⚠ Error al parsear el JSON en GPSData.\n");
+                            return -6;
+                        }
+                    } else {
+                        printf("⚠ No se encontró JSON válido en la respuesta.\n");
+                        return -5;
+                    }
+                }else if(strstr(response, "HTTP/1.") != NULL) {
+
+                    int http_code = 0;
+                    sscanf(response, "HTTP/1.%*d %d", &http_code); // Extraer el código de estado HTTP
+                    printf("Código de estado HTTP: %d\n", http_code);
+
+                    if (http_code == 400) {
+                        printf("Error: Solicitud incorrecta (400).\n");
+                        return -1; // Error del cliente
+                    } else if (http_code == 500) {
+                        printf("Error: Error interno del servidor (500).\n");
+                        return -2; // Error del servidor
+                    } else {
+                        printf("Código HTTP desconocido: %d. Respuesta: %s\n", http_code, response);
+                        return -3; // Código desconocido
+                    }
+                } else {
+                    printf("Respuesta inesperada del servidor: %s\n", response);
+                    return -4; // Respuesta no válida
+                }
+        
+        } else if (strstr(response, "SEND FAIL")) {
+            printf("Error: El envío de datos falló. Respuesta del módulo: %s\n", response);
+            return 0;
+        } else {
+            printf("Error desconocido durante el envío de datos. Respuesta del módulo: %s\n", response);
+            return 0;
+        }
+    } else {
+        printf("Error: El módulo no está listo para enviar datos. Respuesta: %s\n", response);
+        return 0;
+    }
+    return 1;
+}
 
 // Desconectar la sesión GPRS
 int sim808_gprs_disconnect(void) {

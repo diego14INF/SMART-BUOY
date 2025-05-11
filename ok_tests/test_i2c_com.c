@@ -12,28 +12,28 @@ void test_i2c_master_init(void) {
 
 void test_ina219_read_register(void) {
     uint16_t data;
-    esp_err_t ret = ina219_read_register(INA219_REG_BUS_VOLTAGE, &data);
+    esp_err_t ret = ina219_leer_registro(INA219_REG_BUS_VOLTAGE, &data);
     TEST_ASSERT_EQUAL(ESP_OK, ret);
     TEST_ASSERT_NOT_EQUAL(0, data);
 }
 
 void test_ina219_get_shunt_voltage(void) {
-    float shunt_voltage = ina219_get_shunt_voltage();
+    float shunt_voltage = ina219_leer_voltaje_shunt();
     TEST_ASSERT_TRUE(shunt_voltage >= -320.0f && shunt_voltage <= 320.0f);
 }
 
 void test_ina219_get_bus_voltage(void) {
-    float bus_voltage = ina219_get_bus_voltage();
+    float bus_voltage = ina219_leer_voltaje_bus();
     TEST_ASSERT_TRUE(bus_voltage >= 0.0f && bus_voltage <= 32.0f);
 }
 
 void test_ina219_get_current(void) {
-    float current = ina219_get_current();
+    float current = ina219_leer_corriente();
     TEST_ASSERT_TRUE(current >= -3.2f && current <= 3.2f);
 }
 
 void test_ina219_get_power(void) {
-    float power = ina219_get_power();
+    float power = ina219_leer_potencia();
     TEST_ASSERT_TRUE(power >= 0.0f);
 }
 

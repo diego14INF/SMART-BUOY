@@ -6,6 +6,9 @@
 #define STORAGE_SIZE 100
 #define MMSI_UNICO 970000001
 
+#define STORAGE_ENLAZADOS 5
+
+
 typedef struct {
     long long int mmsi;
     GPSData gps_data;
@@ -14,6 +17,7 @@ typedef struct {
 // Funciones de almacenamiento
 void data_storage_init();
 int data_storage_save(GPSData *data);
+int data_storage_paired_save(long long int a, GPSData *data);
 DataEntry* data_storage_get_all();
 int data_storage_get_count();
 

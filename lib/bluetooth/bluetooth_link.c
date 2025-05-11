@@ -6,81 +6,75 @@
 #include "driver/gpio.h"
 #include "esp_http_client.h"
 #include <string.h>
-//#include "esp_gap_bt.h"
+#include "data_storage.h"
+#include "esp_bt.h"
+#include "esp_bt_main.h"
+#include "esp_gap_bt_api.h"
+#include "esp_bt_device.h"
+#include "esp_spp_api.h"
 
 static const char *TAG = "Bluetooth Link";
 static bool linking_mode = false;
+static esp_bd_addr_t remote_bda = {0};
+static long long remote_mmsi = 0;
 
-// // Callback para eventos GAP
-// static void gap_callback(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
-//     switch (event) {
-//         case ESP_BT_GAP_DISC_RES_EVT:
-//             ESP_LOGI(TAG, "Dispositivo encontrado en escaneo.");
-//             break;
-//         case ESP_BT_GAP_DISC_STATE_CHANGED:
-//             ESP_LOGI(TAG, "Estado de escaneo cambiado.");
-//             break;
-//         default:
-//             break;
-//     }
-// }
+// Callback para eventos GAP (descubrimiento)
+static void gap_callback(esp_bt_gap_cb_event_t event, esp_bt_gap_cb_param_t *param) {
+    if (event == ESP_BT_GAP_DISC_RES_EVT && linking_mode) {
+        // Tomamos la primera dirección encontrada
+        memcpy(remote_bda, param->disc_res.bda, ESP_BD_ADDR_LEN);
+        ESP_LOGI(TAG, "Boya encontrada: %02x:%02x:%02x:%02x:%02x:%02x",
+                 remote_bda[0], remote_bda[1], remote_bda[2],
+                 remote_bda[3], remote_bda[4], remote_bda[5]);
 
-// // Inicializa el Bluetooth
-// esp_err_t bluetooth_init(void) {
-//     ESP_ERROR_CHECK(nvs_flash_init());
-//     ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
-//     esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
-//     ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
-//     ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT));
-//     ESP_ERROR_CHECK(esp_bluedroid_init());
-//     ESP_ERROR_CHECK(esp_bluedroid_enable());
-//     ESP_ERROR_CHECK(esp_bt_gap_register_callback(gap_callback));
-//     ESP_ERROR_CHECK(esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0));
-//     ESP_LOGI(TAG, "Bluetooth inicializado correctamente.");
-//     return ESP_OK;
-// }
+        // Detener escaneo
+        esp_bt_gap_cancel_discovery();
+        linking_mode = false;
 
-// // Verifica si el botón está presionado por 10 segundos
-// void check_button_press(void) {
-//     gpio_pad_select_gpio(BUTTON_GPIO);
-//     gpio_set_direction(BUTTON_GPIO, GPIO_MODE_INPUT);
+        // Aquí podrías, por ejemplo, leer SDP o un nombre que contenga el MMSI remoto...
+        // Por simplicidad vamos a usar un valor fijo o bien asumimos que ya conoces remote_mmsi
+        remote_mmsi = 123456789LL; // Debes sustituirlo o extraerlo realmente
 
-//     while (1) {
-//         if (gpio_get_level(BUTTON_GPIO) == 0) {
-//             vTaskDelay(BUTTON_HOLD_TIME / portTICK_PERIOD_MS);
-//             if (gpio_get_level(BUTTON_GPIO) == 0) {
-//                 ESP_LOGI(TAG, "Modo enlace activado.");
-//                 linking_mode = true;
-//                 scan_nearby_buoys();
-//             }
-//         }
-//         vTaskDelay(100 / portTICK_PERIOD_MS);
-//     }
-// }
+        enlazar_boya(remote_mmsi);
+    }
+}
 
-// // Escanea boyas cercanas
-// void scan_nearby_buoys(void) {
-//     if (linking_mode) {
-//         ESP_LOGI(TAG, "Escaneando boyas cercanas...");
-//         esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
-//     }
-// }
+// Inicializa el Bluetooth Classic
+esp_err_t bluetooth_init(void) {
+    ESP_ERROR_CHECK(nvs_flash_init());
+    ESP_ERROR_CHECK(esp_bt_controller_mem_release(ESP_BT_MODE_BLE));
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
+    ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_CLASSIC_BT));
+    ESP_ERROR_CHECK(esp_bluedroid_init());
+    ESP_ERROR_CHECK(esp_bluedroid_enable());
 
-// // Inicia emparejamiento con otra boya
-// void start_pairing(const char *remote_id) {
-//     ESP_LOGI(TAG, "Emparejando con boya ID: %s", remote_id);
-//     exchange_data_with_server(remote_id);
-// }
+    // Registrar GAP callback
+    ESP_ERROR_CHECK(esp_bt_gap_register_callback(gap_callback));
+    ESP_LOGI(TAG, "Bluetooth inicializado OK");
+    return ESP_OK;
+}
 
-// Intercambio de datos con el servidor
-// esp_err_t exchange_data_with_server(const char *buoy_id) {
-//     ESP_LOGI(TAG, "Enviando ID %s al servidor.", buoy_id);
-//     esp_http_client_config_t config = {
-//         .url = SERVER_URL,
-//         .method = HTTP_METHOD_POST,
-//     };
-//     esp_http_client_handle_t client = esp_http_client_init(&config);
-//     esp_http_client_perform(client);
-//     esp_http_client_cleanup(client);
-//     return ESP_OK;
-// }
+// Escanea boyas cercanas
+void escanear_boyas_cercanas(void) {
+    if (!linking_mode) {
+        linking_mode = true;
+        ESP_LOGI(TAG, "Iniciando escaneo de boyas...");
+        esp_bt_gap_start_discovery(ESP_BT_INQ_MODE_GENERAL_INQUIRY, 10, 0);
+    }
+}
+
+// Empareja con la boya encontrada, compartiendo ambos MMSI
+void enlazar_boya(long long int mmsi_remoto) {
+    // Supón que tienes una función para enviar por SPP:
+    // send_spp_data(buffer, length);
+    char payload[64];
+    snprintf(payload, sizeof(payload),
+             "{\"self_mmsi\":%lli,\"remote_mmsi\":%lli}\n",
+             (long long)MMSI_UNICO, mmsi_remoto);
+    ESP_LOGI(TAG, "Enlazando boyas: %s", payload);
+
+    // Inicia conexión SPP con remote_bda, luego enviar payload...
+    // esp_spp_connect(..., remote_bda, ...);
+    // send_spp_data((uint8_t*)payload, strlen(payload));
+}

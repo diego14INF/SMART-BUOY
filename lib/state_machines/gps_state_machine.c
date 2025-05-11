@@ -16,7 +16,7 @@
 #define TIMER_COLD_RESET 5
 #define TIMER_WARM_RESET 3
 #define TIMER_HOT_RESET 2
-#define TIMER_TEN_SECONDS 10000
+#define TIMER_TEN_SECONDS 10
 
 // Estado actual y variables de control
 static GPSState current_state = STATE_VERIFY_GPS;
