@@ -1,4 +1,5 @@
 #include "sim808_gps.h"
+#include "sim808_gprs.h"
 #include "driver/uart.h"
 #include <string.h>
 #include <stdio.h>
@@ -181,6 +182,8 @@ int sim808_init() {
     sim808_send_command("AT+CFUN=1\r\n");
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
 
+    sim808_config_sim();
+
     return 1;
 
 
@@ -188,6 +191,10 @@ int sim808_init() {
 
 int sim808_gps_power_on(){   // Enciende el GPS
     char response[64];
+
+    //Paso 0.0: Activar todas las funcionalidades
+    sim808_send_command("AT+CFUN=1\r\n");
+    sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s
 
     sim808_send_command(GPS_PWR_ON_COMMAND);  
     sim808_wait_for_response(response, sizeof(response), 10000); // Espera hasta 5s

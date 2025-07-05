@@ -23,7 +23,6 @@ typedef enum {
 // Estados principales
 typedef enum {
     ESTADO_INICIAL,
-    ESTADO_BAJO_BATERIA,
     ESTADO_SOCORRO,
     ESTADO_ENVIAR_MENSAJE,
     ESTADO_EMPAREJAMIENTO,

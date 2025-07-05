@@ -1,6 +1,9 @@
 
 #include "peripherals_state_machine.h"
 #include "sim808_gps.h"
+#include "sim808_gprs.h"
+#include "data_storage.h"
+#include "gps_state_machine.h"
 #include "siren_rgb.h"
 #include "bluetooth_link.h"
 #include "energy_control.h"
@@ -12,11 +15,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_timer.h"
+#include "gprs_state_machine.h"
 
 #define BOTON_SOCORRO GPIO_NUM_1
 #define BOTON_AYUDA GPIO_NUM_2
-#define BOTON_SALGO_FUERA GPIO_NUM_3
-#define BOTON_EMPAREJAMIENTO GPIO_NUM_4
+#define BOTON_EMPAREJAMIENTO GPIO_NUM_42
 #define NUM_MODULOS 4
 
 static int64_t ultima_pulsacion[4] = {0};
@@ -112,7 +115,7 @@ void activar_modulo(uint8_t address) {
 }
 
 
-bool boton_acercate, boton_ayuda, boton_socorro, boton_fuera, boton_emparejar;
+bool boton_acercate, boton_ayuda, boton_socorro, boton_emparejar;
 
 
 static void tarea_baliza(void *arg) {
@@ -148,7 +151,6 @@ void procesar_botones(void) {
     boton_emparejar = gpio_get_level(BOTON_EMPAREJAMIENTO) == 1;
     boton_ayuda = gpio_get_level(BOTON_AYUDA) == 1;
     boton_socorro = gpio_get_level(BOTON_SOCORRO) == 1;
-    boton_fuera = gpio_get_level(BOTON_SALGO_FUERA) == 1;
     
 }
 static void IRAM_ATTR gpio_isr_handler(void* arg) {
@@ -163,7 +165,6 @@ static void IRAM_ATTR gpio_isr_handler(void* arg) {
 
 void peripherals_state_machine_init(void) {
     baliza_sirena_init();
-    baliza_sirena_bajo_bateria(); //prueba
     
     gpio_config_t io_conf = {
         .intr_type = GPIO_INTR_NEGEDGE,
@@ -171,7 +172,6 @@ void peripherals_state_machine_init(void) {
         .pin_bit_mask = (1ULL << BOTON_SOCORRO) |
                         (1ULL << BOTON_EMPAREJAMIENTO) |
                         (1ULL << BOTON_AYUDA) |
-                        (1ULL << BOTON_SALGO_FUERA),
         .pull_down_en = 0,
         .pull_up_en = 1
     };
@@ -181,8 +181,6 @@ void peripherals_state_machine_init(void) {
     gpio_isr_handler_add(BOTON_SOCORRO, gpio_isr_handler, (void*)EVENT_SOCORRO);
     gpio_isr_handler_add(BOTON_EMPAREJAMIENTO, gpio_isr_handler, (void*)EVENT_EMPAREJAR);
     gpio_isr_handler_add(BOTON_AYUDA, gpio_isr_handler, (void*)EVENT_AYUDA);
-    gpio_isr_handler_add(BOTON_SALGO_FUERA, gpio_isr_handler, (void*)EVENT_FUERA);
-    //gpio_isr_handler_add(BOTON_ACERCATE, gpio_isr_handler, (void*)EVENT_ACERCATE);
 
     gpio_evt_queue = xQueueCreate(10, sizeof(boton_evento_t));
     baliza_queue = xQueueCreate(5, sizeof(evento_baliza_t));
@@ -202,9 +200,6 @@ void peripherals_state_machine_run(void) {
             case EVENT_AYUDA:
                 estado_actual = ESTADO_ENVIAR_MENSAJE;
                 break;
-            case EVENT_FUERA:
-                estado_actual = ESTADO_ENVIAR_MENSAJE;
-                break;
             case EVENT_EMPAREJAR:
                 estado_actual = ESTADO_EMPAREJAMIENTO;
                 break;
@@ -217,10 +212,25 @@ void peripherals_state_machine_run(void) {
             printf("ESTADO MÁQUINA PERFIERICOS: INICIAL------\n");
             evento_baliza_t evento_ok = EVENTO_BALIZA_ESTADO_OK; //Activacion del evento de baliza correspondiente a cada estado (De esta forma sigue funcionando sin ocupar la ejecucion ppal)
             xQueueSend(baliza_queue, &evento_ok, 0);
-
+            
+   
+    if (data_storage_get_count_paired() > 0) {
+        for (int i = 0; i < storage_count_paired; i++) {
+            int mmsi_enlazado = storage_paired[i].mmsi;
+            if (sim808_gprs_get_data(mmsi_enlazado) == 1) {
+                printf("✅ Datos de boya enlazada %d obtenidos correctamente.\n", mmsi_enlazado);
+                actualizar_direccion_leds(&storage_paired[i].gps_data);
+            } else {
+                printf("⚠ No se pudo obtener la ubicación de la boya enlazada %d\n", mmsi_enlazado);
+            }
+        }
+    }
             
             if (!verificacion_nivel_bateria()) {
-                estado_actual = ESTADO_BAJO_BATERIA;
+                evento_baliza_t evento_bat = EVENTO_BALIZA_BAJA_BATERIA;
+                xQueueSend(baliza_queue, &evento_bat, 0);
+                //Hay que desconectar gprs excepto para envios de mensaje activados por el usuaria o estado de socorro
+                //Aumentamos esperas y reducimos frecuencia de actualizacion
                 break;
             }
 
@@ -234,21 +244,14 @@ void peripherals_state_machine_run(void) {
             }
             break;
 
-        case ESTADO_BAJO_BATERIA:
-            printf("ESTADO MÁQUINA PERFIERICOS: Bajo bateria------\n");
-            evento_baliza_t evento_bat = EVENTO_BALIZA_BAJA_BATERIA;
-            xQueueSend(baliza_queue, &evento_bat, 0);
-            
-            //SI ACTIVAMOS BAJA BATERIA, AMPLIACION DE LAS ESPERAS ENTRES CICLOS, Y DESCONEXION DE ENVIOS PERIODICOS HTTP, EXCEPTO LOS ACTIVADOS POR LAS PULSACIONES
-            
-            estado_actual = ESTADO_INICIAL;
-            break;
-
         case ESTADO_EMPAREJAMIENTO:
             printf("ESTADO MÁQUINA PERFIERICOS: Emparejamiento------\n");
             evento_baliza_t evento_emparejar = EVENTO_BALIZA_EMPAREJAMIENTO;
             xQueueSend(baliza_queue, &evento_emparejar, 0);
             //ACTIVACION DE BLUETOOTH Y EMPAREJAMIENTO CON OTRA BOYA, ESTO ACTIVA LA RECOGIDA DE ULTIMA UBICACION DE BOYA ENLAZADA, PARA MOSTRAR DIRECCION EN FUNCION DE LAS COORDENADAS EN EL ANILLO LED
+               // Lanza el escaneo y emparejamiento Bluetooth
+             //escanear_boyas_cercanas(); //Enlaza si encuentra, la boya cercana activa y almacena el mmsi de la boya enlazada para hacer las peticiones al servidor
+
             estado_actual = ESTADO_INICIAL;
             break;
 
@@ -263,12 +266,29 @@ void peripherals_state_machine_run(void) {
 
 
         case ESTADO_SOCORRO:
-            printf("ESTADO MÁQUINA PERFIERICOS: Socorro------\n");
-            evento_baliza_t evento = EVENTO_BALIZA_SOCORRO;
-            xQueueSend(baliza_queue, &evento, 0);
-            //ENVIO DE MENSAJE DE SOCORRO (SMS Y HTTP)
-            estado_actual = ESTADO_INICIAL;
-            break;
+         printf("ESTADO MÁQUINA PERFIERICOS: Socorro------\n");
+          // 1) Enviar evento a la baliza
+          evento_baliza_t evento = EVENTO_BALIZA_SOCORRO;
+          xQueueSend(baliza_queue, &evento, 0);
+
+         // 2) Intentar enviar SMS de socorro con la última posición válida
+         if (data_storage_get_count_sos()){
+            GPSData *ultima_ubicacion = data_storage_get_sos();
+            int ret = sim808_send_sos_sms(ultima_ubicacion);
+           if (ret == 1) {
+               printf("✅ SMS de socorro enviado correctamente.\n");
+            } else if (ret == 0) {
+               printf("❌ Timeout o fallo en el envío del SMS de socorro.\n");
+            } else {
+              printf("❌ Error al enviar SMS de socorro (código %d).\n", ret);
+            }
+        } else {
+        printf("⚠ No hay posición GPS válida para enviar en el SMS de socorro.\n");
+        }
+
+         // 3) Volver al estado inicial
+         estado_actual = ESTADO_INICIAL;
+         break;
 
         case ESTADO_ERROR:
             printf("ESTADO MÁQUINA PERFIERICOS: Error------\n");

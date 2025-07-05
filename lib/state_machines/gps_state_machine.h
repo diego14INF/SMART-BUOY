@@ -2,6 +2,7 @@
 #define GPS_STATE_MACHINE_H
 
 #include <stdbool.h>
+#include "sim808_gps.h"
 
 // Estados de la máquina de estados
 typedef enum {
@@ -16,6 +17,8 @@ typedef enum {
 void gps_state_machine_init(void);
 
 void start_gps_reset_timer(int reset_type);
+
+bool gps_data_is_valid(const GPSData *d);
 
 // Ejecutar la máquina de estados
 void gps_state_machine_run(void);

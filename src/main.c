@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "sim808_gps.h" // Archivo de encabezado que contiene las declaraciones de las funciones y estructuras
-#include <esp_rom_sys.h>  // Necesario para `esp_rom_delay_us()`
+#include "sim808_gps.h"
+#include <esp_rom_sys.h> 
 #include "data_storage.h"
 #include "sim808_gprs.h"
 #include "gps_state_machine.h"
@@ -35,7 +35,7 @@ void app_main(void) {
     i2c_master_init();
     ina219_calibracion(0.02, 3.2);
 
-    // Crear el semáforo binario
+    // Crear el semáforo ternario
     sim808_semaphore = xSemaphoreCreateBinary();
     if (sim808_semaphore == NULL) {
         printf("Error al crear el semáforo.\n");
@@ -46,11 +46,10 @@ void app_main(void) {
     xSemaphoreGive(sim808_semaphore);
 
     // Crear las tareas para las máquinas de estado
-    //xTaskCreate(gps_task, "GPS Task", 8192, NULL, 2, NULL);
-    //xTaskCreate(gprs_task, "GPRS Task", 16384, NULL, 2, NULL);
-    xTaskCreate(peripherals_task, "Peripherals Task", 4096, NULL, 2, NULL);
+    xTaskCreate(gps_task, "GPS Task", 16384, NULL, 2, NULL);
+    xTaskCreate(gprs_task, "GPRS Task", 32768, NULL, 2, NULL);
+    xTaskCreate(peripherals_task, "Peripherals Task", 16384, NULL, 2, NULL);
 
-    // Ya no se requiere un bucle en `app_main` porque las tareas se ejecutan en paralelo
 }
 
 // Implementación de la tarea para la máquina de estado GPS
@@ -59,11 +58,10 @@ void gps_task(void *pvParameters) {
         // Intentar tomar el semáforo
         if (xSemaphoreTake(sim808_semaphore, portMAX_DELAY)) {
             printf("-------->>>>>>GPS>>>>>>--------\n");
-
             // Ejecutar la máquina de estado GPS
             gps_state_machine_run();
             printf("Memoria restante en la pila de GPS Task: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
-            printf("Memoria libre en el heap: %lu bytes\n", esp_get_free_heap_size());
+            //printf("Memoria libre en el heap: %lu bytes\n", esp_get_free_heap_size());
             printf("--------<<<<<<GPS<<<<<<--------\n");
             // Esperar antes de liberar el semáforo
             vTaskDelay(pdMS_TO_TICKS(2000)); // Esperar 100ms antes de liberar
@@ -84,13 +82,10 @@ void gprs_task(void *pvParameters) {
         // Intentar tomar el semáforo
         if (xSemaphoreTake(sim808_semaphore, portMAX_DELAY)) {
             printf("-------->>>>>>GPR(S)>>>>>>--------\n");
-
             // Ejecutar la máquina de estado GPRS
             gprs_state_machine_run();
             printf("Memoria restante en la pila de GPRS Task: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
-            printf("Memoria libre en el heap: %lu bytes\n", esp_get_free_heap_size());
-
-
+            //printf("Memoria libre en el heap: %lu bytes\n", esp_get_free_heap_size());
             printf("--------<<<<<<GPR(S)<<<<<<--------\n");
             vTaskDelay(pdMS_TO_TICKS(4000)); // Esperar 100ms antes de liberar
             uart_flush(UART_NUM_1);
@@ -98,7 +93,6 @@ void gprs_task(void *pvParameters) {
         } else {
             printf("GPRS Task: Esperando el semáforo.\n");
         }
-
         // Puede realizar otras actividades mientras espera el semáforo
         vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 1 segundo antes de reintentar
     }
@@ -110,18 +104,16 @@ void peripherals_task(void *pvParameters) {
         // Intentar tomar el semáforo
         if (xSemaphoreTake(sim808_semaphore, portMAX_DELAY)) {
             printf("-------->>>>>>Peripherals>>>>>>--------\n");
-
             // Ejecutar la máquina de estado GPRS
             peripherals_state_machine_run();
             printf("Memoria restante en la pila de Periphericals Task: %u bytes\n", uxTaskGetStackHighWaterMark(NULL));
-            printf("Memoria libre en el heap: %lu bytes\n", esp_get_free_heap_size());
+            //printf("Memoria libre en el heap: %lu bytes\n", esp_get_free_heap_size());
             printf("--------<<<<<<Peripherals<<<<<<--------\n");
             vTaskDelay(pdMS_TO_TICKS(1000)); // Esperar 100ms antes de liberar
             xSemaphoreGive(sim808_semaphore); // Liberar el semáforo
         } else {
             printf("Peripherals Task: Esperando el semáforo.\n");
         }
-
         // Puede realizar otras actividades mientras espera el semáforo
         vTaskDelay(pdMS_TO_TICKS(2000)); // Esperar 1 segundo antes de reintentar
     }

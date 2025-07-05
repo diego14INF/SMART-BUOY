@@ -26,6 +26,22 @@ int gps_mode = 0;
 int reset_type;
 GPSData gps_data;
 
+// Definición global (por ejemplo, al principio de tu módulo)
+GPSData last_valid_gps_data = {
+    .time = 0.0,
+    .latitude = 0.0,
+    .longitude = 0.0,
+    .altitude = 0.0,
+    .speed = 0.0,
+    .course = 0.0,
+    .battery_voltage = 0
+};
+
+// Función auxiliar para saber si el GPSData es “no nulo”
+bool gps_data_is_valid(const GPSData *d) {
+    // Puedes afinar esta condición según tu criterio de “no nulo”
+    return (d->latitude != 0.0 || d->longitude != 0.0);
+}
 
 // Inicializa la máquina de estados
 void gps_state_machine_init(void) {
@@ -93,16 +109,21 @@ void gps_state_machine_run(void) {
 
         case STATE_STORE_DATA:
             printf("ESTADO MÁQUINA GPS: Almacenamiento de datos------\n");
-            if (data_storage_save(&gps_data)) {
+            // 1) Actualizar solo si viene un fix válido
+            if (gps_data_is_valid(&gps_data)) {
+                last_valid_gps_data = gps_data;
+               // 2) Guardar siempre la última posición válida en las 2 memorias
+              if (data_storage_save(&last_valid_gps_data)) {
                 printf("Total de entradas a la memoria: %d\n",  data_storage_get_count());
                 printf("Datos almacenados con éxito. Espera de 10 segundos....\n");
                 start_gps_reset_timer(GPS_WAIT); // Inicia el temporizador
                 current_state = STATE_WAIT_TIMER; // Reinicia el flujo
                 gps_retry_count = 0;
                 acquisition_retry_count = 0;
-            } else {
+              } else {
                 printf("Error al almacenar los datos.\n");
                 current_state = STATE_ERROR;
+              }
             }
             break;
 
@@ -110,6 +131,8 @@ void gps_state_machine_run(void) {
            printf("ESTADO MÁQUINA GPS: En espera módulo GPS------\n");
            if (is_timer_finished()) {
               printf("----Temporizador completado.----\n");
+              //Inicio despues del reinicio
+              sim808_gps_power_on();
               current_state = STATE_VERIFY_GPS;; // Regresa a verificar el GPS
             } else {
                //vTaskDelay(10 / portTICK_PERIOD_MS); // Da tiempo al sistema operativo

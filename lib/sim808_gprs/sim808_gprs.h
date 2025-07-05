@@ -29,7 +29,7 @@
 
 //Comandos para comunicación SMS/TLF
 #define SMS_CONFIG_COMAND "AT+CMGF=1\r\n" // Configura para enviar SMS
-#define TLF_CONFIG_COMMAND "AT+CMGS=\"+123456789\"\r\n" //Configura el número de destino
+#define SMS_PHONE_NUMBER_COMAND "AT+CMGS=\"+34674080561\"\r\n" //Configura el número de destino
 
 
 #define RESPONSE_BUFFER_SIZE 512
@@ -59,6 +59,6 @@ int sim808_check_registration_status(void);
 int sim808_check_functionality_status(void); 
 int sim808_check_signal_strength(void);
 
-//int sim808_gprs_https_request(char *shipping_buffer);
+int sim808_send_sos_sms(GPSData *data);
 
 #endif // SIM808_GPRS_H

@@ -9,7 +9,7 @@
 //#define UMBRAL_VOLT_BATERIA_MAXIMA 12.6  // Tensión máxima de la batería (4.2V × 3).
 #define UMBRAL_VOLT_BATERIA_BAJA 9.5  // Tensión mínima operativa (UMBRAL MINIMO QUE NO SE DEBERIA SUPERAR 8.4-9 V). El voltaje mínimo seguro es 2.8V - 3.0V por celda para evitar una descarga profunda.
 #define UMBRAL_VOLT_SIM808_MAX 4.3
-#define UMBRAL_CORRIENTE_SIM808_MAX 5
+#define UMBRAL_CORRIENTE_SIM808_MAX 10
 #define UMBRAL_VOLT_LEDS_MAX 5
 #define UMBRAL_CORRIENTE_LEDS_MAX 5
 #define UMBRAL_VOLT_SIRENA_MAX 5
@@ -26,6 +26,7 @@ bool verificacion_nivel_bateria() {
 
 
 bool verificacion_estado_modulo(uint8_t ina219_addr) {
+    ina219_log_data();
     float voltaje = ina219_leer_voltaje_bus(ina219_addr);
     float corriente = ina219_leer_corriente(ina219_addr);
 
@@ -52,7 +53,7 @@ bool verificacion_estado_modulo(uint8_t ina219_addr) {
     }
 
     // Comprobar si el módulo está consumiendo menos de lo esperado
-    if (voltaje < umbral_voltaje || corriente < umbral_corriente) {
+    if (voltaje > umbral_voltaje || corriente > umbral_corriente) {
         return true;  // Indicar que hay un problema en el módulo
     }
 

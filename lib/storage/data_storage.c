@@ -8,11 +8,17 @@ static int storage_count = 0;
 static DataEntry storage_paired[STORAGE_ENLAZADOS];
 static int storage_count_paired = 0;
 
+static DataEntry storage_sos[1];
+bool storage_count_sos = false;
+
 void data_storage_init() {
     storage_count = 0;
 }
 
 int data_storage_save(GPSData *data) {
+        storage_sos[0].mmsi = MMSI_UNICO;
+        storage_sos[0].gps_data = *data;
+        storage_count_sos =true;
      if (storage_count < STORAGE_SIZE) {
         // Si hay espacio, añade directamente
         storage[storage_count].mmsi = MMSI_UNICO;
@@ -60,11 +66,20 @@ int data_storage_paired_save(long long int mmsi, GPSData *data) {
     return 1;
 }
 
+
 DataEntry* data_storage_get_all() {
     return storage;
+}
+GPSData* data_storage_get_sos(){
+    return &storage_sos->gps_data;
 }
 
 int data_storage_get_count() {
 
     return storage_count;
+}
+
+bool data_storage_get_count_sos() {
+
+    return storage_count_sos;
 }

@@ -283,6 +283,7 @@ int sim808_gprs_send_data(char *shipping_buffer) {
 
         // Verificar el resultado del envío
         sim808_wait_for_response(response, sizeof(response), 10000); // Esperar hasta 10s
+         vTaskDelay(pdMS_TO_TICKS(3000));
 
         // Verificar el resultado del envío (esperar "SEND OK")
         if (strstr(response, "SEND OK")) {
@@ -357,6 +358,7 @@ int sim808_gprs_get_data(char *mmsi_enlazado) {
 
         // Verificar el resultado del envío
         sim808_wait_for_response(response, sizeof(response), 10000); // Esperar hasta 10s
+         vTaskDelay(pdMS_TO_TICKS(3000));
 
         // Verificar el resultado del envío (esperar "SEND OK")
         if (strstr(response, "SEND OK")) {
@@ -437,3 +439,61 @@ int sim808_gprs_disconnect(void) {
     return 1;
 }
 
+//--------MENSAJE SMS SOS--------------------
+int sim808_send_sos_sms(GPSData *data)
+{   char response [256];
+    //char cmd[128];
+    char payload[256];
+
+ char time_str[20]; // Buffer para almacenar el tiempo como cadena
+
+// Convertir el valor double a una cadena
+snprintf(time_str, sizeof(time_str), "%.6f", data->time);
+
+// Extraer los valores de fecha y hora
+int anio, mes, dia, hora, minuto, segundo;
+sscanf(time_str, "%4d%2d%2d%2d%2d%2d", &anio, &mes, &dia, &hora, &minuto, &segundo);
+
+
+    // 1) Poner SIM808 en modo texto
+    sim808_send_command(SMS_CONFIG_COMAND);
+    vTaskDelay(pdMS_TO_TICKS(500));
+
+    // 2) Preparar el mensaje SMS con los datos GPS
+    // Formato: SOS! MMSI:xxxxx Lat:xx.xxxx Lon:yy.yyyy Time:tt.tttttt
+    snprintf(payload, sizeof(payload),
+             "SOS!!! Necesito rescate! Dia&Hora:%s Lat:%.6f Lon:%.6f ",
+             time_str,
+             data->latitude,
+             data->longitude
+             );
+
+    // 3) Indicar número de destino
+    sim808_send_command(SMS_PHONE_NUMBER_COMAND);
+
+    sim808_wait_for_response(response, sizeof(response), 10);
+    if (strstr(response, ">")) {
+    // 4) Enviar el cuerpo del SMS y CTRL+Z (0x1A)
+       sim808_send_command(payload);
+        uart_write_bytes(UART_NUM, "\x1A", 1); // CTRL+Z para enviar y finalizar
+
+        // Verificar el resultado del envío
+        sim808_wait_for_response(response, sizeof(response), 10000); // Esperar hasta 10s
+         vTaskDelay(pdMS_TO_TICKS(3000));
+    }else{
+        return 0;
+    }
+
+    //sim808_wait_for_response(response, sizeof(response), 10);
+        if (strstr(response, "OK")) {
+            printf("✅ SMS de socorro enviado: %s\n", payload);
+            return 1;
+        } else {
+            printf("❌ Error al enviar SMS: %s\n", response);
+            return -1;
+        }
+    
+
+    printf("❌ Timeout esperando confirmación de SMS.\n");
+    return 0;
+}

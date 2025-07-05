@@ -129,12 +129,12 @@ void ina219_log_data() {
         float current = ina219_leer_corriente(addr);
         float power = ina219_leer_potencia(addr);
 
-        printf("INA219 (Addr 0x%X)\n", addr);
-        printf("  - Shunt Voltage: %.2f mV\n", shunt_voltage);
-        printf("  - Bus Voltage: %.2f V\n", bus_voltage);
-        printf("  - Current: %.3f A\n", current);
-        printf("  - Power: %.3f W\n", power);
-        printf("----------------------------\n");
+        // printf("INA219 (Addr 0x%X)\n", addr);
+        // printf("  - Shunt Voltage: %.2f mV\n", shunt_voltage);
+        // printf("  - Bus Voltage: %.2f V\n", bus_voltage);
+        // printf("  - Current: %.3f A\n", current);
+        // printf("  - Power: %.3f W\n", power);
+        // printf("----------------------------\n");
     }
 }
 
